@@ -65,6 +65,13 @@ class TestOneGame(unittest.TestCase):
 		self.assertEqual(m.group('year'), '2013')
 
 		m = spreads.GAME_URL_RE.match(
+			"http://www.teamrankings.com/nfl/matchup/falcons-49ers-week-16-2013/spread-movement")
+		self.assertEqual(m.group('team_a'), 'falcons')
+		self.assertEqual(m.group('team_b'), '49ers')
+		self.assertEqual(m.group('week'), '16')
+		self.assertEqual(m.group('year'), '2013')
+
+		m = spreads.GAME_URL_RE.match(
 			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
 		self.assertEqual(m.group('team_a'), 'seahawks')
 		self.assertEqual(m.group('team_b'), 'broncos')
