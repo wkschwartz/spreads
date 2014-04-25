@@ -5,8 +5,10 @@ from pandas.io.html import read_html
 def one_game_url(team_a, team_b, week, year):
 	"Calculate the URL for the spreads from team_a to team_b."
 	base = "http://www.teamrankings.com/nfl/matchup/"
-	template = "{team_a}-{team_b}-week-{week}-{year}"
+	template = "{team_a}-{team_b}-{week}-{year}"
 	tail = "/spread-movement"
+	if not isinstance(week, str):
+		week = 'week-' + str(week)
 	result = template.format(team_a=team_a, team_b=team_b, week=week, year=year)
 	return ''.join([base, result, tail])
 

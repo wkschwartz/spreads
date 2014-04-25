@@ -13,6 +13,9 @@ class TestOneGame(unittest.TestCase):
 		self.assertEqual(
 			spreads.one_game_url('ravens', 'broncos', 1, 2013),
 			"http://www.teamrankings.com/nfl/matchup/ravens-broncos-week-1-2013/spread-movement")
+		self.assertEqual(
+			spreads.one_game_url('seahawks', 'broncos', 'super-bowl', 2013),
+			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
 
 	def assert_columns(self, data, year):
 		# Date: check type, check year, check uniquness of index
