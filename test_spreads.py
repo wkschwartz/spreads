@@ -55,3 +55,18 @@ class TestOneGame(unittest.TestCase):
 		data = spreads.concatenate_tables([one, two])
 		self.assert_columns(data, year)
 		self.assertEqual(len(one) + len(two), len(data))
+
+	def test_game_url(self):
+		m = spreads.GAME_URL_RE.match(
+			"http://www.teamrankings.com/nfl/matchup/ravens-broncos-week-1-2013/spread-movement")
+		self.assertEqual(m.group('team_a'), 'ravens')
+		self.assertEqual(m.group('team_b'), 'broncos')
+		self.assertEqual(m.group('week'), '1')
+		self.assertEqual(m.group('year'), '2013')
+
+		m = spreads.GAME_URL_RE.match(
+			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
+		self.assertEqual(m.group('team_a'), 'seahawks')
+		self.assertEqual(m.group('team_b'), 'broncos')
+		self.assertEqual(m.group('week'), 'super-bowl')
+		self.assertEqual(m.group('year'), '2013')

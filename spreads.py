@@ -1,5 +1,22 @@
+import re
+
 import pandas as pd
 from pandas.io.html import read_html
+
+
+GAME_URL_RE = re.compile(
+	r"""http://www.teamrankings.com/nfl/matchup/
+        (?P<team_a>\w+)-
+        (?P<team_b>\w+)-
+        (?:week-)?            # Regular integer weeks start with this
+        (?P<week>
+            (?:\d+)           # The part of a regular week we want
+            |                 # OR
+            (?:[a-zA-Z0-9-]+) # "super-bowl" or "divisional"
+        )-
+        (?P<year>\d{4})
+        /spread-movement""",
+	flags=re.VERBOSE)
 
 
 def one_game_url(team_a, team_b, week, year):
