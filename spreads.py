@@ -31,8 +31,7 @@ def one_game_table(team_a, team_b, week, year):
 
 	# Replace all the '--' as missing so we can convert numbers to floats.
 	for column in data.keys():
-		data[column] = data[column].replace('--', '').apply(
-			lambda s: float(s) if s else float('nan'))
+		data[column] = data[column].replace('--', 'nan').apply(float)
 
 	# Add this function's arguments to the table.
 	data['team_a'] = team_a
