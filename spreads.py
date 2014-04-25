@@ -1,3 +1,6 @@
+import multiprocessing
+from concurrent import futures
+import itertools
 import re
 
 import pandas as pd
@@ -18,6 +21,16 @@ GAME_URL_RE = re.compile(
         /spread-movement""",
 	flags=re.VERBOSE)
 
+
+TEAMS = ("49ers", "bears", "bengals", "bills", "broncos", "browns",
+		 "buccaneers", "cardinals", "chargers", "chiefs", "colts", "cowboys",
+		 "dolphins", "eagles", "falcons", "giants", "jaguars", "jets", "lions",
+		 "packers", "panthers", "patriots", "raiders", "rams", "ravens",
+		 "redskins", "saints", "seahawks", "steelers", "texans", "titans",
+		 "vikings")
+
+WEEKS = tuple(i for i in range(1, 17)) + ('wild-card', 'divisional',
+										  'conference', 'super-bowl')
 
 def one_game_url(team_a, team_b, week, year):
 	"Calculate the URL for the spreads from team_a to team_b."
@@ -74,3 +87,38 @@ def concatenate_tables(tables):
 		else:
 			last = last.append(table)
 	return last
+
+
+def all_possible_games(year, weeks=WEEKS, teams=TEAMS):
+	"Weeks is an iterable of `week` parameters to pass to one_game_url."
+	for team_a, team_b in itertools.permutations(teams, 2):
+		for week in weeks:
+			yield team_a, team_b, week, year
+
+
+def season_table(year, timeout=60, concurrency=None):
+	def worker(args):
+		print('Attempting: %s' % (args,))
+		try:
+			return one_game_table(*args)
+		except ValueError:
+			return None
+	futures_to_args  = {}
+	tables = []
+	if concurrency is None:
+		concurrency = multiprocessing.cpu_count() * 2
+	print('Concurrency: %d' % concurrency)
+	with futures.ThreadPoolExecutor(concurrency) as pool:
+		for args in all_possible_games(year):
+			futures_to_args[pool.submit(worker, args)] = args
+		for future in futures.as_completed(futures_to_args, timeout=timeout):
+			args = futures_to_args[future]
+			try:
+				table = future.result()
+			except Exception as exc:
+				print("%r generated an exception: %s" % (args, exc))
+			else:
+				if table is not None:
+					print('Success: %s' % (args,))
+					tables.append(table)
+	return concatenate_tables(tables)

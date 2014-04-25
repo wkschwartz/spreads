@@ -77,3 +77,9 @@ class TestOneGame(unittest.TestCase):
 		self.assertEqual(m.group('team_b'), 'broncos')
 		self.assertEqual(m.group('week'), 'super-bowl')
 		self.assertEqual(m.group('year'), '2013')
+
+	def test_all_possible_games(self):
+		generator = spreads.all_possible_games(2013, [1, 'a'], ['b', 'c'])
+		self.assertCountEqual(list(generator),
+							  [('b', 'c', 1, 2013), ('c', 'b', 1, 2013),
+							   ('b', 'c', 'a', 2013), ('c', 'b', 'a', 2013)])
