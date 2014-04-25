@@ -18,11 +18,10 @@ class TestOneGame(unittest.TestCase):
 			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
 
 	def assert_columns(self, data, year):
-		# Date: check type, check year, check uniquness of index
-		self.assertIsInstance(data.index, pd.tseries.index.DatetimeIndex)
-		for date in data.index:
+		# Date: check type, check year
+		self.assertEqual(data.datetime.dtype, np.dtype('<M8[ns]'))
+		for date in data.datetime:
 			self.assertEqual(date.year, year)
-		self.assertEqual(len(data.index), len(set(data.index)))
 		# pinnacle, betonline, bookmaker: it's a float
 		for column in 'pinnacle', 'betonline', 'bookmaker':
 			self.assertIs(data[column].dtype, np.dtype('float64'))
@@ -42,7 +41,8 @@ class TestOneGame(unittest.TestCase):
 		for x in data.week:
 			self.assertEqual(x, week)
 		# Test the contents of the first row
-		row = data['2013-09-05 21:05:00']
+		row = data.loc[0]
+		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
 		self.assertTrue(math.isnan(row.pinnacle))
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(float(row.bookmaker), -7)

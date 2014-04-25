@@ -25,15 +25,17 @@ def one_game_table(team_a, team_b, week, year):
 	data = data.pop()
 
 	# Cleaning.
-	# Parse the date and set it as the index for the dataframe
-	data['datetime'] = pd.to_datetime(data['Unnamed: 0'].replace(
+	datetime = pd.to_datetime(data['Unnamed: 0'].replace(
 		r'(\d\d?/\d\d?)', r'\1/' + str(year), regex=True))
 	del data['Unnamed: 0']
-	data.set_index(keys='datetime', inplace=True, verify_integrity=True)
 
 	# Replace all the '--' as missing so we can convert numbers to floats.
 	for column in data.keys():
 		data[column] = data[column].replace('--', 'nan').apply(float)
+
+	# Add datetime back in after the str-to-float conversion so we don't do it
+	# for the datetime.
+	data['datetime'] = datetime
 
 	# Add this function's arguments to the table.
 	data['team_a'] = team_a
