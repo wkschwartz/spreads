@@ -1,3 +1,4 @@
+import math
 import unittest
 
 import numpy as np
@@ -37,6 +38,11 @@ class TestOneGame(unittest.TestCase):
 			self.assertEqual(x, team_b)
 		for x in data.week:
 			self.assertEqual(x, week)
+		# Test the contents of the first row
+		row = data['2013-09-05 21:05:00']
+		self.assertTrue(math.isnan(row.pinnacle))
+		self.assertTrue(math.isnan(row.betonline))
+		self.assertEqual(float(row.bookmaker), -7)
 
 	def test_concatenate_tables(self):
 		# Get two tables
