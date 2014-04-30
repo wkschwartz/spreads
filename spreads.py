@@ -44,7 +44,11 @@ def one_game_url(hometeam, awayteam, week, year):
 
 
 def one_game_table(hometeam, awayteam, week, year):
-	"Download, parse, and clean the spreads table for one game."
+	"""Download, parse, and clean the spreads table for one game.
+
+	The columns are pinnacle, betonline, bookmaker, datetime, hometeam,
+	awayteam, week. The first three are the bookies.
+	"""
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
 	data = read_html(io=one_game_url(hometeam, awayteam, week, year),
 					 match="History", attrs={'id': 'table-000'},
