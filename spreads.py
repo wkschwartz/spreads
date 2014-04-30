@@ -93,11 +93,24 @@ def all_possible_games(year, weeks=WEEKS, teams=TEAMS):
 
 def season_spreads_table(year, timeout=60, concurrency=None):
 	def worker(args):
-		print('Attempting: %s' % (args,))
-		try:
-			return one_game_table(*args)
-		except ValueError:
-			return None
+		retried = False
+		while True:
+			print('Attempting: %s' % (args,))
+			try:
+				game = one_game_table(*args)
+			except ValueError:
+				if not retried:
+					# Maybe the home/away info is bad, so swap teams.
+					args = list(args)
+					args[0], args[1] = args[1], args[0]
+					retried = True
+				else:
+					return None
+			else:
+				if retried:
+					game.awayteam, game.hometeam = game.hometeam, game.awayteam
+					game['home_away_discrepency'] = True
+				return game
 	futures_to_args  = {}
 	tables = []
 	if concurrency is None:
