@@ -91,7 +91,7 @@ def all_possible_games(year, weeks=WEEKS, teams=TEAMS):
 			yield hometeam, awayteam, week, year
 
 
-def season_table(year, timeout=60, concurrency=None):
+def season_spreads_table(year, timeout=60, concurrency=None):
 	def worker(args):
 		print('Attempting: %s' % (args,))
 		try:
@@ -103,20 +103,32 @@ def season_table(year, timeout=60, concurrency=None):
 	if concurrency is None:
 		concurrency = multiprocessing.cpu_count() * 2
 	print('Concurrency: %d' % concurrency)
+	season = season_table(year)
+	weeks = []
+	for week in season.week:
+		try:
+			weeks.append(int(week))
+		except ValueError:
+			weeks.append(week)
+	args = zip(season.hometeam, season.awayteam, weeks)
 	with futures.ThreadPoolExecutor(concurrency) as pool:
-		for args in all_possible_games(year):
-			futures_to_args[pool.submit(worker, args)] = args
-		for future in futures.as_completed(futures_to_args, timeout=timeout):
-			args = futures_to_args[future]
-			try:
-				table = future.result()
-			except Exception as exc:
-				print("%r generated an exception: %s" % (args, exc))
-			else:
-				if table is not None:
-					print('Success: %s' % (args,))
-					tables.append(table)
-	return concatenate_tables(tables)
+		for arg in args:
+			arg = arg + (year,)
+			futures_to_args[pool.submit(worker, arg)] = arg
+		try:
+			for future in futures.as_completed(futures_to_args, timeout=timeout):
+				args = futures_to_args[future]
+				try:
+					table = future.result()
+				except Exception as exc:
+					print("%r generated an exception: %s" % (args, exc))
+				else:
+					if table is not None:
+						print('Success: %s' % (args,))
+						tables.append(table)
+		except TimeoutError:
+			pass
+	return season.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
 
 
 def season_table(year):
