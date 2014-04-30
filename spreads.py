@@ -150,6 +150,8 @@ def season_table(year):
 	data = data[data.Week != "Week"]
 	data = data[data.Week != "nan"]
 	data['week'] = data.Week.replace("WildCard", "wild-card").replace("Division", "divisional").replace("ConfChamp", "conference").replace("SuperBowl", "super-bowl")
+	data.week = data.week.apply(
+		lambda s: int(s) if all(c in '1234567890' for c in s) else s)
 	del data['Week']
 
 	data['date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
