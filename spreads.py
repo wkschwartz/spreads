@@ -32,6 +32,8 @@ TEAMS = ("49ers", "bears", "bengals", "bills", "broncos", "browns",
 WEEKS = tuple(i for i in range(1, 17)) + ('wild-card', 'divisional',
 										  'conference', 'super-bowl')
 
+SEASON_URL_TEMPLATE = "http://www.pro-football-reference.com/years/{year:n}/games.htm"
+
 def one_game_url(hometeam, awayteam, week, year):
 	"Calculate the URL for the spreads from hometeam to awayteam."
 	base = "http://www.teamrankings.com/nfl/matchup/"
@@ -115,3 +117,44 @@ def season_table(year, timeout=60, concurrency=None):
 					print('Success: %s' % (args,))
 					tables.append(table)
 	return concatenate_tables(tables)
+
+
+def season_table(year):
+	"""Return a table of games and scores for the given season.
+
+	The columns are Week, PtsW, PtsL, winner, loser, hometeam, awayteam, date.
+	"""
+	data = read_html(io=SEASON_URL_TEMPLATE.format(year=year),
+					  attrs={'id': 'games'},
+					  infer_types=False,
+					  header=0)
+	if len(data) != 1:
+		raise ValueError("Couldn't find the correct table.")
+	data = data.pop()
+
+	# Cleaning.
+	for column in "YdsW", "TOW", "YdsL", "TOL", "Unnamed: 3", "Day":
+	    del data[column]
+	data = data[data.Week != "Week"]
+	data = data[data.Week != "nan"]
+	data['week'] = data.Week.replace("WildCard", "wild-card").replace("Division", "divisional").replace("ConfChamp", "conference").replace("SuperBowl", "super-bowl")
+	del data['Week']
+
+	data['date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
+	del data['Date']
+
+	for column in "PtsW", "PtsL":
+	    data[column] = data[column].apply(int)
+
+	data['WatL'] = data['Unnamed: 5'].apply(lambda x: x == '@')
+	del data['Unnamed: 5']
+	data['hometeam'] =  data.WatL * data['Winner/tie'] + ~data.WatL * data['Loser/tie']
+	data['awayteam'] = ~data.WatL * data['Winner/tie'] +  data.WatL * data['Loser/tie']
+	data['winner'] = data['Winner/tie']
+	data['loser'] = data['Loser/tie']
+	for column in 'Winner/tie', 'Loser/tie', "WatL":
+		del data[column]
+	for column in 'hometeam', 'awayteam', 'winner', 'loser':
+		data[column] = data[column].apply(lambda s: s.split()[-1].lower())
+
+	return data
