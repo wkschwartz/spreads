@@ -78,17 +78,6 @@ def one_game_table(hometeam, awayteam, week, year):
 	return data
 
 
-def concatenate_tables(tables):
-	"Append an iterable of tables together."
-	last = None
-	for table in tables:
-		if last is None:
-			last = table
-		else:
-			last = last.append(table)
-	return last
-
-
 def all_possible_games(year, weeks=WEEKS, teams=TEAMS):
 	"Weeks is an iterable of `week` parameters to pass to one_game_url."
 	for hometeam, awayteam in itertools.permutations(teams, 2):

@@ -47,15 +47,6 @@ class TestOneGame(unittest.TestCase):
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(float(row.bookmaker), -7)
 
-	def test_concatenate_tables(self):
-		# Get two tables
-		year = 2013
-		one = spreads.one_game_table('ravens', 'broncos', 1, year)
-		two = spreads.one_game_table('ravens', 'bengals', 17, year)
-		data = spreads.concatenate_tables([one, two])
-		self.assert_columns(data, year)
-		self.assertEqual(len(one) + len(two), len(data))
-
 	def test_game_url(self):
 		m = spreads.GAME_URL_RE.match(
 			"http://www.teamrankings.com/nfl/matchup/ravens-broncos-week-1-2013/spread-movement")
