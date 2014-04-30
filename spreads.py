@@ -115,19 +115,16 @@ def season_spreads_table(year, timeout=60, concurrency=None):
 		for arg in args:
 			arg = arg + (year,)
 			futures_to_args[pool.submit(worker, arg)] = arg
-		try:
-			for future in futures.as_completed(futures_to_args, timeout=timeout):
-				args = futures_to_args[future]
-				try:
-					table = future.result()
-				except Exception as exc:
-					print("%r generated an exception: %s" % (args, exc))
-				else:
-					if table is not None:
-						print('Success: %s' % (args,))
-						tables.append(table)
-		except TimeoutError:
-			pass
+		for future in futures.as_completed(futures_to_args, timeout=timeout):
+			args = futures_to_args[future]
+			try:
+				table = future.result()
+			except Exception as exc:
+				print("%r generated an exception: %s" % (args, exc))
+			else:
+				if table is not None:
+					print('Success: %s' % (args,))
+					tables.append(table)
 	return season.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
 
 
