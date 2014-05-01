@@ -2,9 +2,11 @@ import multiprocessing
 from concurrent import futures
 import itertools
 import re
+from urllib.request import urlopen
 
 import pandas as pd
 from pandas.io.html import read_html
+from bs4 import BeautifulSoup
 
 
 GAME_URL_RE = re.compile(
@@ -54,8 +56,10 @@ def one_game_table(hometeam, awayteam, week, year):
 	The columns are pinnacle, betonline, bookmaker, datetime, hometeam,
 	awayteam, week. The first three are the bookies.
 	"""
+	with urlopen(one_game_url(hometeam, awayteam, week, year)) as connection:
+		page = connection.read()
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
-	data = read_html(io=one_game_url(hometeam, awayteam, week, year),
+	data = read_html(io=page.decode('utf-8'),
 					 match="History", attrs={'id': 'table-000'},
 					 infer_types=False, header=0,
 					 skiprows=[1, 2, 3])
@@ -83,6 +87,22 @@ def one_game_table(hometeam, awayteam, week, year):
 
 	# Lowercase column names for ease of programming later
 	data.columns = [h.lower() for h in data.columns]
+
+	# Get favored team from the big "WAS -4.0" that shows up in the middle of
+	# the page.
+	soup = BeautifulSoup(page)
+	abbrev = soup.find('div', attrs={'class': 'module point-spreads'}).find(
+		'a').contents[0].split()[0]
+	# It'll be something like WAS for Redskins or PHI for Eagles. Translate by
+	# finding the links in the page that show up as WAS but have links to the
+	# Redskins.
+	links = soup.find('p', attrs={'class': 'h1-sub'}).find('strong').findAll('a')
+	for link in links:
+		if abbrev in link:
+			data['favored'] = link['href'].split('-')[-1]
+			break
+	else:
+		raise ValueError("couldn't figure out who %s is" % abbrev)
 
 	return data
 
