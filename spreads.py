@@ -174,7 +174,7 @@ def season_table(year):
 		lambda s: int(s) if all(c in '1234567890' for c in s) else s)
 	del data['Week']
 
-	data['date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
+	data['game_date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
 	del data['Date']
 
 	for column in "PtsW", "PtsL":
