@@ -34,6 +34,9 @@ WEEKS = tuple(i for i in range(1, 17)) + ('wild-card', 'divisional',
 
 SEASON_URL_TEMPLATE = "http://www.pro-football-reference.com/years/{year:n}/games.htm"
 
+class CantFindTheRightTable(Exception): pass
+
+
 def one_game_url(hometeam, awayteam, week, year):
 	"Calculate the URL for the spreads from hometeam to awayteam."
 	base = "http://www.teamrankings.com/nfl/matchup/"
@@ -57,7 +60,7 @@ def one_game_table(hometeam, awayteam, week, year):
 					 infer_types=False, header=0,
 					 skiprows=[1, 2, 3])
 	if len(data) != 1:
-		raise ValueError("Couldn't find the correct table.")
+		raise CantFindTheRightTable
 	data = data.pop()
 
 	# Cleaning.
@@ -98,7 +101,7 @@ def season_spreads_table(year, timeout=60, concurrency=None):
 			print('Attempting: %s' % (args,))
 			try:
 				game = one_game_table(*args)
-			except ValueError:
+			except CantFindTheRightTable:
 				if not retried:
 					# Maybe the home/away info is bad, so swap teams.
 					args = list(args)
@@ -135,12 +138,13 @@ def season_spreads_table(year, timeout=60, concurrency=None):
 				table = future.result()
 			except Exception as exc:
 				print("%r generated an exception: %s" % (args, exc))
+				fail.append(args)
 			else:
-				if table is not None:
+				if table is None:
+					fail.append(args)
+				else:
 					print('Success: %s' % (args,))
 					tables.append(table)
-				else:
-					fail.append(args)
 	for args in fail:
 		print('Fail: %s' % (args,))
 	return season.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
@@ -156,7 +160,7 @@ def season_table(year):
 					  infer_types=False,
 					  header=0)
 	if len(data) != 1:
-		raise ValueError("Couldn't find the correct table.")
+		raise CantFindTheRightTable
 	data = data.pop()
 
 	# Cleaning.
