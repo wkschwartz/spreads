@@ -94,7 +94,7 @@ def all_possible_games(year, weeks=WEEKS, teams=TEAMS):
 			yield hometeam, awayteam, week, year
 
 
-def season_spreads_table(year, timeout=60, concurrency=None):
+def season_spreads_table(year, timeout=120, concurrency=None):
 	def worker(args):
 		retried = False
 		while True:
