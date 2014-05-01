@@ -124,6 +124,7 @@ def season_spreads_table(year, timeout=60, concurrency=None):
 		except ValueError:
 			weeks.append(week)
 	args = zip(season.hometeam, season.awayteam, weeks)
+	fail = []
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in args:
 			arg = arg + (year,)
@@ -138,6 +139,10 @@ def season_spreads_table(year, timeout=60, concurrency=None):
 				if table is not None:
 					print('Success: %s' % (args,))
 					tables.append(table)
+				else:
+					fail.append(args)
+	for args in fail:
+		print('Fail: %s' % (args,))
 	return season.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
 
 
