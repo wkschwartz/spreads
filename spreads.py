@@ -111,7 +111,8 @@ def season_spreads_table(year, timeout=60, concurrency=None):
 					return None
 			else:
 				if retried:
-					game.awayteam, game.hometeam = game.hometeam, game.awayteam
+					awayteam, hometeam = game.hometeam.copy(), game.awayteam.copy()
+					game.hometeam, game.awayteam = hometeam, awayteam
 					game['home_away_discrepency'] = True
 				return game
 	futures_to_args  = {}
