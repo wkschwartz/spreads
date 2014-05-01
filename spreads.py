@@ -101,7 +101,7 @@ def season_spreads_table(year, timeout=120, concurrency=None):
 			print('Attempting: %s' % (args,))
 			try:
 				game = one_game_table(*args)
-			except CantFindTheRightTable:
+			except (CantFindTheRightTable, ValueError):
 				if not retried:
 					# Maybe the home/away info is bad, so swap teams.
 					args = list(args)
