@@ -70,7 +70,7 @@ def one_game_table(hometeam, awayteam, week, year):
 
 	# Replace all the '--' as missing so we can convert numbers to floats.
 	for column in data.keys():
-		data[column] = data[column].replace('--', 'nan').apply(float)
+		data[column] = data[column].replace('--', 'nan').replace('(Pick)', 0).apply(float)
 
 	# Add datetime back in after the str-to-float conversion so we don't do it
 	# for the datetime.
