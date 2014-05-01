@@ -165,8 +165,7 @@ def season_table(year):
 	data = data.pop()
 
 	# Cleaning.
-	for column in "YdsW", "TOW", "YdsL", "TOL", "Unnamed: 3", "Day":
-	    del data[column]
+	del data["Unnamed: 3"]
 	data = data[data.Week != "Week"]
 	data = data[data.Week != "nan"]
 	data['week'] = data.Week.replace("WildCard", "wild-card").replace("Division", "divisional").replace("ConfChamp", "conference").replace("SuperBowl", "super-bowl")
@@ -177,7 +176,7 @@ def season_table(year):
 	data['game_date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
 	del data['Date']
 
-	for column in "PtsW", "PtsL":
+	for column in "PtsW", "PtsL", "YdsW", "TOW", "YdsL", "TOL":
 	    data[column] = data[column].apply(int)
 
 	data['WatL'] = data['Unnamed: 5'].apply(lambda x: x == '@')
