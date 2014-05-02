@@ -62,7 +62,10 @@ def game(hometeam, awayteam, week, year):
 
 	# Replace all the '--' as missing so we can convert numbers to floats.
 	for column in data.keys():
-		data[column] = data[column].replace('--', 'nan').replace('(Pick)', 0).apply(float)
+		data[column] = (data[column]
+						.replace('--', 'nan')
+						.replace('(Pick)', 0)
+						.apply(float))
 
 	# Add datetime back in after the str-to-float conversion so we don't do it
 	# for the datetime.
@@ -79,8 +82,11 @@ def game(hometeam, awayteam, week, year):
 	# Get favored team from the big "WAS -4.0" that shows up in the middle of
 	# the page.
 	soup = BeautifulSoup(page)
-	abbrev = soup.find('div', attrs={'class': 'module point-spreads'}).find(
-		'a').contents[0].split()[0]
+	abbrev = (soup
+			  .find('div', attrs={'class': 'module point-spreads'})
+			  .find('a')
+			  .contents[0]
+			  .split()[0])
 	# It'll be something like WAS for Redskins or PHI for Eagles. Translate by
 	# finding the links in the page that show up as WAS but have links to the
 	# Redskins.
@@ -117,14 +123,22 @@ def season_games(year):
 
 	# Cleaning.
 	del data["Unnamed: 3"]
-	data = data[data.Week != "Week"]
-	data = data[data.Week != "nan"]
-	data['week'] = data.Week.replace("WildCard", "wild-card").replace("Division", "divisional").replace("ConfChamp", "conference").replace("SuperBowl", "super-bowl")
-	data.week = data.week.apply(
-		lambda s: int(s) if all(c in '1234567890' for c in s) else s)
+	# These rows are mid-table header rows.
+	data = data[data.Week != "Week"][data.Week != "nan"]
+
+	data['week'] = (data.Week
+					.replace("WildCard", "wild-card")
+					.replace("Division", "divisional")
+					.replace("ConfChamp", "conference")
+					.replace("SuperBowl", "super-bowl")
+					.apply(
+						lambda s: (int(s)
+								   if all(c in '1234567890' for c in s)
+								   else s)))
 	del data['Week']
 
-	data['game_date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
+	data['game_date'] = pd.to_datetime(
+		data.Date.replace("$", ", %d" % year, regex=True))
 	del data['Date']
 
 	for column in "PtsW", "PtsL", "YdsW", "TOW", "YdsL", "TOL":
@@ -132,8 +146,10 @@ def season_games(year):
 
 	data['WatL'] = data['Unnamed: 5'].apply(lambda x: x == '@')
 	del data['Unnamed: 5']
-	data['hometeam'] =  data.WatL * data['Winner/tie'] + ~data.WatL * data['Loser/tie']
-	data['awayteam'] = ~data.WatL * data['Winner/tie'] +  data.WatL * data['Loser/tie']
+	data['hometeam'] = (data.WatL * data['Winner/tie'] +
+						~data.WatL * data['Loser/tie'])
+	data['awayteam'] = (~data.WatL * data['Winner/tie'] +
+						data.WatL * data['Loser/tie'])
 	data['winner'] = data['Winner/tie']
 	for column in 'Winner/tie', 'Loser/tie', "WatL":
 		del data[column]
