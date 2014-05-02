@@ -181,7 +181,7 @@ def _download_game(args):
 				args[0], args[1] = args[1], args[0]
 				retried = True
 			else:
-				return None
+				raise
 		else:
 			if retried:
 				awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
