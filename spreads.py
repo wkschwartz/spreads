@@ -175,13 +175,13 @@ def _download_game(args):
 		try:
 			g = game(*args)
 		except (CantFindTheRightTable, ValueError):
-			if not retried:
+			if retried:
+				raise
+			else:
 				# Maybe the home/away info is bad, so swap teams.
 				args = list(args)
 				args[0], args[1] = args[1], args[0]
 				retried = True
-			else:
-				raise
 		else:
 			if retried:
 				awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
