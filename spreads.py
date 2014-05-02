@@ -187,7 +187,7 @@ def _download_game(args):
 				awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
 				g.hometeam, g.awayteam = hometeam, awayteam
 				g['home_away_discrepency'] = True
-	return g
+			return g
 
 
 def season(year, timeout=120, concurrency=2 * cpu_count()):
