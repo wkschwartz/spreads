@@ -201,7 +201,7 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 	"""
 	LOG.debug('Concurrency = %d', concurrency)
 	games = season_games(year)
-	weeks, tables, futures_to_args = [], [], {}
+	tables, futures_to_args = [], {}
 	# See https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor-example.
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in zip(games.hometeam, games.awayteam, games.week):
