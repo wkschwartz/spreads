@@ -81,6 +81,48 @@ def game(hometeam, awayteam, week, year):
 	return data
 
 
+def season_games(year):
+	"""Return a table of games and scores for the given season.
+
+	The columns are Week, PtsW, PtsL, winner, loser, hometeam, awayteam, date.
+	"""
+	data = read_html(io=SEASON_URL_TEMPLATE.format(year=year),
+					  attrs={'id': 'games'},
+					  infer_types=False,
+					  header=0)
+	if len(data) != 1:
+		raise CantFindTheRightTable
+	data = data.pop()
+
+	# Cleaning.
+	del data["Unnamed: 3"]
+	data = data[data.Week != "Week"]
+	data = data[data.Week != "nan"]
+	data['week'] = data.Week.replace("WildCard", "wild-card").replace("Division", "divisional").replace("ConfChamp", "conference").replace("SuperBowl", "super-bowl")
+	data.week = data.week.apply(
+		lambda s: int(s) if all(c in '1234567890' for c in s) else s)
+	del data['Week']
+
+	data['game_date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
+	del data['Date']
+
+	for column in "PtsW", "PtsL", "YdsW", "TOW", "YdsL", "TOL":
+	    data[column] = data[column].apply(int)
+
+	data['WatL'] = data['Unnamed: 5'].apply(lambda x: x == '@')
+	del data['Unnamed: 5']
+	data['hometeam'] =  data.WatL * data['Winner/tie'] + ~data.WatL * data['Loser/tie']
+	data['awayteam'] = ~data.WatL * data['Winner/tie'] +  data.WatL * data['Loser/tie']
+	data['winner'] = data['Winner/tie']
+	data['loser'] = data['Loser/tie']
+	for column in 'Winner/tie', 'Loser/tie', "WatL":
+		del data[column]
+	for column in 'hometeam', 'awayteam', 'winner', 'loser':
+		data[column] = data[column].apply(lambda s: s.split()[-1].lower())
+
+	return data
+
+
 def season(year, timeout=120, concurrency=None):
 	def worker(args):
 		retried = False
@@ -136,45 +178,3 @@ def season(year, timeout=120, concurrency=None):
 	for args in fail:
 		print('Fail: %s' % (args,))
 	return games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
-
-
-def season_games(year):
-	"""Return a table of games and scores for the given season.
-
-	The columns are Week, PtsW, PtsL, winner, loser, hometeam, awayteam, date.
-	"""
-	data = read_html(io=SEASON_URL_TEMPLATE.format(year=year),
-					  attrs={'id': 'games'},
-					  infer_types=False,
-					  header=0)
-	if len(data) != 1:
-		raise CantFindTheRightTable
-	data = data.pop()
-
-	# Cleaning.
-	del data["Unnamed: 3"]
-	data = data[data.Week != "Week"]
-	data = data[data.Week != "nan"]
-	data['week'] = data.Week.replace("WildCard", "wild-card").replace("Division", "divisional").replace("ConfChamp", "conference").replace("SuperBowl", "super-bowl")
-	data.week = data.week.apply(
-		lambda s: int(s) if all(c in '1234567890' for c in s) else s)
-	del data['Week']
-
-	data['game_date'] = pd.to_datetime(data.Date.replace("$", ", %d" % year, regex=True))
-	del data['Date']
-
-	for column in "PtsW", "PtsL", "YdsW", "TOW", "YdsL", "TOL":
-	    data[column] = data[column].apply(int)
-
-	data['WatL'] = data['Unnamed: 5'].apply(lambda x: x == '@')
-	del data['Unnamed: 5']
-	data['hometeam'] =  data.WatL * data['Winner/tie'] + ~data.WatL * data['Loser/tie']
-	data['awayteam'] = ~data.WatL * data['Winner/tie'] +  data.WatL * data['Loser/tie']
-	data['winner'] = data['Winner/tie']
-	data['loser'] = data['Loser/tie']
-	for column in 'Winner/tie', 'Loser/tie', "WatL":
-		del data[column]
-	for column in 'hometeam', 'awayteam', 'winner', 'loser':
-		data[column] = data[column].apply(lambda s: s.split()[-1].lower())
-
-	return data
