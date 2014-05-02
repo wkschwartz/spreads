@@ -8,9 +8,8 @@ Forty Niners'. We give weeks as integers like, `1` or `16`, or as one of
 which the season starts.
 """
 
-import multiprocessing
+from multiprocessing import cpu_count
 from concurrent import futures
-import itertools
 from urllib.request import urlopen
 
 import pandas as pd
@@ -167,7 +166,7 @@ def _download_game(args):
 	return g
 
 
-def season(year, timeout=120, concurrency=2 * multiprocessing.cpu_count()):
+def season(year, timeout=120, concurrency=2 * cpu_count()):
 	"""Download, parse, and clean the scores & spreads for all games in a season
 
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
