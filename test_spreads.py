@@ -46,3 +46,9 @@ class TestOneGame(unittest.TestCase):
 		self.assertTrue(math.isnan(row.pinnacle))
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(float(row.bookmaker), -7)
+
+	def test_season_games_url(self):
+		self.assertEqual(
+			spreads.season_games_url(2012),
+			"http://www.pro-football-reference.com/years/2012/games.htm")
+		self.assertRaises(ValueError, spreads.season_games_url, '2012')
