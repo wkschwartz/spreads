@@ -199,20 +199,12 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 	The returned table is the JOIN of the tables that `season_game` and `game`
 	return.
 	"""
-	futures_to_args  = {}
-	tables = []
 	LOG.debug('Concurrency = %d', concurrency)
 	games = season_games(year)
-	weeks = []
-	for week in games.week:
-		try:
-			weeks.append(int(week))
-		except ValueError:
-			weeks.append(week)
-	args = zip(games.hometeam, games.awayteam, weeks)
+	weeks, tables, futures_to_args = [], [], {}
 	# See https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor-example.
 	with futures.ThreadPoolExecutor(concurrency) as pool:
-		for arg in args:
+		for arg in zip(games.hometeam, games.awayteam, games.week):
 			arg = arg + (year,)
 			futures_to_args[pool.submit(_download_game, arg)] = arg
 		for future in futures.as_completed(futures_to_args, timeout=timeout):
