@@ -52,9 +52,7 @@ def game(hometeam, awayteam, week, year):
 	with urlopen(game_url(hometeam, awayteam, week, year)) as connection:
 		page = connection.read()
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
-	LOG.debug('Getting game %s',
-			  {'hometeam': hometeam, 'awayteam': awayteam, 'week': week,
-			   'year': year})
+	LOG.debug('Getting game %s', (hometeam, awayteam, week, year))
 	data = read_html(io=page.decode('utf-8'),
 					 match="History", attrs={'id': 'table-000'},
 					 infer_types=False, header=0,
