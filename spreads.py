@@ -8,16 +8,6 @@ from pandas.io.html import read_html
 from bs4 import BeautifulSoup
 
 
-TEAMS = ("49ers", "bears", "bengals", "bills", "broncos", "browns",
-		 "buccaneers", "cardinals", "chargers", "chiefs", "colts", "cowboys",
-		 "dolphins", "eagles", "falcons", "giants", "jaguars", "jets", "lions",
-		 "packers", "panthers", "patriots", "raiders", "rams", "ravens",
-		 "redskins", "saints", "seahawks", "steelers", "texans", "titans",
-		 "vikings")
-
-WEEKS = tuple(i for i in range(1, 17)) + ('wild-card', 'divisional',
-										  'conference', 'super-bowl')
-
 SEASON_URL_TEMPLATE = "http://www.pro-football-reference.com/years/{year:n}/games.htm"
 
 class CantFindTheRightTable(Exception): pass
@@ -89,13 +79,6 @@ def one_game_table(hometeam, awayteam, week, year):
 		raise ValueError("couldn't figure out who %s is" % abbrev)
 
 	return data
-
-
-def all_possible_games(year, weeks=WEEKS, teams=TEAMS):
-	"Weeks is an iterable of `week` parameters to pass to one_game_url."
-	for hometeam, awayteam in itertools.permutations(teams, 2):
-		for week in weeks:
-			yield hometeam, awayteam, week, year
 
 
 def season_spreads_table(year, timeout=120, concurrency=None):

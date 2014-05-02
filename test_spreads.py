@@ -46,9 +46,3 @@ class TestOneGame(unittest.TestCase):
 		self.assertTrue(math.isnan(row.pinnacle))
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(float(row.bookmaker), -7)
-
-	def test_all_possible_games(self):
-		generator = spreads.all_possible_games(2013, [1, 'a'], ['b', 'c'])
-		self.assertCountEqual(list(generator),
-							  [('b', 'c', 1, 2013), ('c', 'b', 1, 2013),
-							   ('b', 'c', 'a', 2013), ('c', 'b', 'a', 2013)])
