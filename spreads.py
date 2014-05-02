@@ -167,7 +167,7 @@ def _download_game(args):
 	return g
 
 
-def season(year, timeout=120, concurrency=None):
+def season(year, timeout=120, concurrency=2 * multiprocessing.cpu_count()):
 	"""Download, parse, and clean the scores & spreads for all games in a season
 
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
@@ -178,8 +178,6 @@ def season(year, timeout=120, concurrency=None):
 	"""
 	futures_to_args  = {}
 	tables = []
-	if concurrency is None:
-		concurrency = multiprocessing.cpu_count() * 2
 	print('Concurrency: %d' % concurrency)
 	games = season_games(year)
 	weeks = []
