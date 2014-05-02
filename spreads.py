@@ -159,7 +159,7 @@ def season_games(year):
 	data['winner'] = data['Winner/tie']
 	for column in 'Winner/tie', 'Loser/tie', "WatL":
 		del data[column]
-	for column in 'hometeam', 'awayteam', 'winner', 'loser':
+	for column in 'hometeam', 'awayteam', 'winner':
 		data[column] = data[column].apply(lambda s: s.split()[-1].lower())
 
 	return data
