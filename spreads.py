@@ -188,11 +188,11 @@ def _download_game(args):
 			return g
 
 
-def season(year, timeout=None, concurrency=2 * cpu_count()):
+def season(year, timeout=None, concurrency=cpu_count()):
 	"""Download, parse, and clean the scores & spreads for all games in a season
 
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
-	defaulting to twice the number of CPUs (as this function is IO-bound).
+	defaulting to the number of CPUs.
 
 	The returned table is the JOIN of the tables that `season_game` and `game`
 	return.
@@ -220,12 +220,12 @@ def season(year, timeout=None, concurrency=2 * cpu_count()):
 	return games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
 
 
-def seasons(years, timeout=None, concurrency=2 * cpu_count()):
+def seasons(years, timeout=None, concurrency=cpu_count()):
 	"""Download, parse, and clean multiple seasons of NFL games and spreads.
 
 	`years` is an iterable of integers. `timeout` is measured in
-	seconds. `concurrency is the number of threads to use, defaulting to twice
-	the number of CPUs.
+	seconds. `concurrency is the number of threads to use, defaulting to the
+	number of CPUs.
 
 	The returned table has all the columns from `game` and `season_games`.
 	"""
