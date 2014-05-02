@@ -1,27 +1,11 @@
 import multiprocessing
 from concurrent import futures
 import itertools
-import re
 from urllib.request import urlopen
 
 import pandas as pd
 from pandas.io.html import read_html
 from bs4 import BeautifulSoup
-
-
-GAME_URL_RE = re.compile(
-	r"""http://www.teamrankings.com/nfl/matchup/
-        (?P<hometeam>\w+)-
-        (?P<awayteam>\w+)-
-        (?:week-)?            # Regular integer weeks start with this
-        (?P<week>
-            (?:\d+)           # The part of a regular week we want
-            |                 # OR
-            (?:[a-zA-Z0-9-]+) # "super-bowl" or "divisional"
-        )-
-        (?P<year>\d{4})
-        /spread-movement""",
-	flags=re.VERBOSE)
 
 
 TEAMS = ("49ers", "bears", "bengals", "bills", "broncos", "browns",
