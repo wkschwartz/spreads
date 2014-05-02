@@ -8,6 +8,7 @@ Forty Niners'. We give weeks as integers like, `1` or `16`, or as one of
 which the season starts.
 """
 
+import logging
 from multiprocessing import cpu_count
 from concurrent import futures
 from urllib.request import urlopen
@@ -24,6 +25,7 @@ _GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
 _SEASON_URL_TEMPLATE = ("http://www.pro-football-reference.com/years/"
 					   "{year:n}"
 					   "/games.htm")
+LOG = logging.getLogger(__name__)
 
 
 class CantFindTheRightTable(Exception): pass
@@ -47,6 +49,9 @@ def game(hometeam, awayteam, week, year):
 	with urlopen(game_url(hometeam, awayteam, week, year)) as connection:
 		page = connection.read()
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
+	LOG.debug('Downloading and parsing game %s',
+			  {'hometeam': hometeam, 'awayteam': awayteam, 'week': week,
+			   'year': year})
 	data = read_html(io=page.decode('utf-8'),
 					 match="History", attrs={'id': 'table-000'},
 					 infer_types=False, header=0,
@@ -113,6 +118,7 @@ def season_games(year):
 	turn overs for the winning team; and points, yards, and turn overs for the
 	losing team.
 	"""
+	LOG.debug('Downloading and parsing season %d', year)
 	data = read_html(io=season_games_url(year),
 					  attrs={'id': 'games'},
 					  infer_types=False,
@@ -163,7 +169,6 @@ def _download_game(args):
 	"Thread worker. Only to be used in `season` function."
 	retried = False
 	while True:
-		print('Attempting: %s' % (args,))
 		try:
 			g = game(*args)
 		except (CantFindTheRightTable, ValueError):
@@ -193,7 +198,7 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 	"""
 	futures_to_args  = {}
 	tables = []
-	print('Concurrency: %d' % concurrency)
+	LOG.debug('Concurrency = %d', concurrency)
 	games = season_games(year)
 	weeks = []
 	for week in games.week:
@@ -202,7 +207,6 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 		except ValueError:
 			weeks.append(week)
 	args = zip(games.hometeam, games.awayteam, weeks)
-	fail = []
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in args:
 			arg = arg + (year,)
@@ -212,14 +216,11 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 			try:
 				table = future.result()
 			except Exception as exc:
-				print("%r generated an exception: %s" % (args, exc))
-				fail.append(args)
+				LOG.exception('Error from %s: %s', args, exc)
 			else:
 				if table is None:
-					fail.append(args)
+					LOG.error('Failure: %s', args)
 				else:
-					print('Success: %s' % (args,))
+					LOG.info('Success: %s', args)
 					tables.append(table)
-	for args in fail:
-		print('Fail: %s' % (args,))
 	return games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
