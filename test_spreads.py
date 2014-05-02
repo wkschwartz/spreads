@@ -9,12 +9,12 @@ import spreads
 
 class TestOneGame(unittest.TestCase):
 
-	def test_one_game_url(self):
+	def test_game_url(self):
 		self.assertEqual(
-			spreads.one_game_url('ravens', 'broncos', 1, 2013),
+			spreads.game_url('ravens', 'broncos', 1, 2013),
 			"http://www.teamrankings.com/nfl/matchup/ravens-broncos-week-1-2013/spread-movement")
 		self.assertEqual(
-			spreads.one_game_url('seahawks', 'broncos', 'super-bowl', 2013),
+			spreads.game_url('seahawks', 'broncos', 'super-bowl', 2013),
 			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
 
 	def assert_columns(self, data, year):
@@ -29,9 +29,9 @@ class TestOneGame(unittest.TestCase):
 		for col in 'hometeam', 'awayteam', 'week':
 			self.assertIn(col, data.keys())
 
-	def test_one_game_table(self):
+	def test_game(self):
 		hometeam, awayteam, week, year = 'ravens', 'broncos', 1, 2013
-		data = spreads.one_game_table(hometeam, awayteam, week, year)
+		data = spreads.game(hometeam, awayteam, week, year)
 		self.assert_columns(data, year)
 		# hometeam=ravens, awayteam=broncos, week=1
 		for x in data.hometeam:

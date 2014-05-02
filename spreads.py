@@ -13,7 +13,7 @@ SEASON_URL_TEMPLATE = "http://www.pro-football-reference.com/years/{year:n}/game
 class CantFindTheRightTable(Exception): pass
 
 
-def one_game_url(hometeam, awayteam, week, year):
+def game_url(hometeam, awayteam, week, year):
 	"Calculate the URL for the spreads from hometeam to awayteam."
 	base = "http://www.teamrankings.com/nfl/matchup/"
 	template = "{hometeam}-{awayteam}-{week}-{year}"
@@ -24,13 +24,13 @@ def one_game_url(hometeam, awayteam, week, year):
 	return ''.join([base, result, tail])
 
 
-def one_game_table(hometeam, awayteam, week, year):
+def game(hometeam, awayteam, week, year):
 	"""Download, parse, and clean the spreads table for one game.
 
 	The columns are pinnacle, betonline, bookmaker, datetime, hometeam,
 	awayteam, week. The first three are the bookies.
 	"""
-	with urlopen(one_game_url(hometeam, awayteam, week, year)) as connection:
+	with urlopen(game_url(hometeam, awayteam, week, year)) as connection:
 		page = connection.read()
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
 	data = read_html(io=page.decode('utf-8'),
@@ -81,13 +81,13 @@ def one_game_table(hometeam, awayteam, week, year):
 	return data
 
 
-def season_spreads_table(year, timeout=120, concurrency=None):
+def season(year, timeout=120, concurrency=None):
 	def worker(args):
 		retried = False
 		while True:
 			print('Attempting: %s' % (args,))
 			try:
-				game = one_game_table(*args)
+				g = game(*args)
 			except (CantFindTheRightTable, ValueError):
 				if not retried:
 					# Maybe the home/away info is bad, so swap teams.
@@ -98,23 +98,23 @@ def season_spreads_table(year, timeout=120, concurrency=None):
 					return None
 			else:
 				if retried:
-					awayteam, hometeam = game.hometeam.copy(), game.awayteam.copy()
-					game.hometeam, game.awayteam = hometeam, awayteam
-					game['home_away_discrepency'] = True
-				return game
+					awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
+					g.hometeam, g.awayteam = hometeam, awayteam
+					g['home_away_discrepency'] = True
+				return g
 	futures_to_args  = {}
 	tables = []
 	if concurrency is None:
 		concurrency = multiprocessing.cpu_count() * 2
 	print('Concurrency: %d' % concurrency)
-	season = season_table(year)
+	games = season_games(year)
 	weeks = []
-	for week in season.week:
+	for week in games.week:
 		try:
 			weeks.append(int(week))
 		except ValueError:
 			weeks.append(week)
-	args = zip(season.hometeam, season.awayteam, weeks)
+	args = zip(games.hometeam, games.awayteam, weeks)
 	fail = []
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in args:
@@ -135,10 +135,10 @@ def season_spreads_table(year, timeout=120, concurrency=None):
 					tables.append(table)
 	for args in fail:
 		print('Fail: %s' % (args,))
-	return season.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
+	return games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
 
 
-def season_table(year):
+def season_games(year):
 	"""Return a table of games and scores for the given season.
 
 	The columns are Week, PtsW, PtsL, winner, loser, hometeam, awayteam, date.
