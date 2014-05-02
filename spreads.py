@@ -52,7 +52,7 @@ def game(hometeam, awayteam, week, year):
 	with urlopen(game_url(hometeam, awayteam, week, year)) as connection:
 		page = connection.read()
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
-	LOG.debug('Downloading and parsing game %s',
+	LOG.debug('Getting game %s',
 			  {'hometeam': hometeam, 'awayteam': awayteam, 'week': week,
 			   'year': year})
 	data = read_html(io=page.decode('utf-8'),
@@ -121,7 +121,7 @@ def season_games(year):
 	turn overs for the winning team; and points, yards, and turn overs for the
 	losing team.
 	"""
-	LOG.debug('Downloading and parsing season %d', year)
+	LOG.debug('Getting season %d', year)
 	data = read_html(io=season_games_url(year),
 					  attrs={'id': 'games'},
 					  infer_types=False,
@@ -236,7 +236,7 @@ def seasons(years, timeout=None, concurrency=2 * cpu_count()):
 	if timeout is None:
 		timeout = 120 * len(years)
 	for year in years:
-		LOG.info('=' * 34 + ' %d ' + '=' * 34, year)
+		LOG.info('=' * 10 + ' %d ' + '=' * 10, year)
 		table = season(year, timeout=timeout, concurrency=concurrency)
 		if tables is None:
 			tables = table
