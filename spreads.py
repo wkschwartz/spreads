@@ -188,7 +188,7 @@ def _download_game(args):
 			return g
 
 
-def season(year, timeout=120, concurrency=2 * cpu_count()):
+def season(year, timeout=None, concurrency=2 * cpu_count()):
 	"""Download, parse, and clean the scores & spreads for all games in a season
 
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
@@ -223,16 +223,14 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 def seasons(years, timeout=None, concurrency=2 * cpu_count()):
 	"""Download, parse, and clean multiple seasons of NFL games and spreads.
 
-	`years` is an iterable of integers. `timeout` is measured in seconds and
-	defaults to 120 s times the number of years to obtain. `concurrency is the
-	number of threads to use, defaulting to twice the number of CPUs.
+	`years` is an iterable of integers. `timeout` is measured in
+	seconds. `concurrency is the number of threads to use, defaulting to twice
+	the number of CPUs.
 
 	The returned table has all the columns from `game` and `season_games`.
 	"""
 	tables = None
 	years = list(years)
-	if timeout is None:
-		timeout = 120 * len(years)
 	for year in years:
 		LOG.info('=' * 10 + ' %d ' + '=' * 10, year)
 		table = season(year, timeout=timeout, concurrency=concurrency)
