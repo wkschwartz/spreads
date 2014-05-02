@@ -8,20 +8,23 @@ from pandas.io.html import read_html
 from bs4 import BeautifulSoup
 
 
-SEASON_URL_TEMPLATE = "http://www.pro-football-reference.com/years/{year:n}/games.htm"
+_GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
+					 "{hometeam}-{awayteam}-{week}-{year:n}"
+					 "/spread-movement")
+_SEASON_URL_TEMPLATE = ("http://www.pro-football-reference.com/years/"
+					   "{year:n}"
+					   "/games.htm")
+
 
 class CantFindTheRightTable(Exception): pass
 
 
 def game_url(hometeam, awayteam, week, year):
 	"Calculate the URL for the spreads from hometeam to awayteam."
-	base = "http://www.teamrankings.com/nfl/matchup/"
-	template = "{hometeam}-{awayteam}-{week}-{year}"
-	tail = "/spread-movement"
 	if not isinstance(week, str):
 		week = 'week-' + str(week)
-	result = template.format(hometeam=hometeam, awayteam=awayteam, week=week, year=year)
-	return ''.join([base, result, tail])
+	return _GAME_URL_TEMPLATE.format(
+		hometeam=hometeam, awayteam=awayteam, week=week, year=year)
 
 
 def game(hometeam, awayteam, week, year):
@@ -81,12 +84,17 @@ def game(hometeam, awayteam, week, year):
 	return data
 
 
+def season_games_url(year):
+	"Calculate the URL for the games in season starting in `year`."
+	return _SEASON_URL_TEMPLATE.format(year=year)
+
+
 def season_games(year):
 	"""Return a table of games and scores for the given season.
 
 	The columns are Week, PtsW, PtsL, winner, loser, hometeam, awayteam, date.
 	"""
-	data = read_html(io=SEASON_URL_TEMPLATE.format(year=year),
+	data = read_html(io=season_games_url(year),
 					  attrs={'id': 'games'},
 					  infer_types=False,
 					  header=0)
