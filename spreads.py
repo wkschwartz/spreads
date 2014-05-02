@@ -123,27 +123,29 @@ def season_games(year):
 	return data
 
 
-def season(year, timeout=120, concurrency=None):
-	def worker(args):
-		retried = False
-		while True:
-			print('Attempting: %s' % (args,))
-			try:
-				g = game(*args)
-			except (CantFindTheRightTable, ValueError):
-				if not retried:
-					# Maybe the home/away info is bad, so swap teams.
-					args = list(args)
-					args[0], args[1] = args[1], args[0]
-					retried = True
-				else:
-					return None
+def _download_game(args):
+	retried = False
+	while True:
+		print('Attempting: %s' % (args,))
+		try:
+			g = game(*args)
+		except (CantFindTheRightTable, ValueError):
+			if not retried:
+				# Maybe the home/away info is bad, so swap teams.
+				args = list(args)
+				args[0], args[1] = args[1], args[0]
+				retried = True
 			else:
-				if retried:
-					awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
-					g.hometeam, g.awayteam = hometeam, awayteam
-					g['home_away_discrepency'] = True
-				return g
+				return None
+		else:
+			if retried:
+				awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
+				g.hometeam, g.awayteam = hometeam, awayteam
+				g['home_away_discrepency'] = True
+	return g
+
+
+def season(year, timeout=120, concurrency=None):
 	futures_to_args  = {}
 	tables = []
 	if concurrency is None:
@@ -161,7 +163,7 @@ def season(year, timeout=120, concurrency=None):
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in args:
 			arg = arg + (year,)
-			futures_to_args[pool.submit(worker, arg)] = arg
+			futures_to_args[pool.submit(_download_game, arg)] = arg
 		for future in futures.as_completed(futures_to_args, timeout=timeout):
 			args = futures_to_args[future]
 			try:
