@@ -9,6 +9,8 @@ which the season starts.
 """
 
 import logging
+import datetime
+import sys
 from multiprocessing import cpu_count
 from concurrent import futures
 from urllib.request import urlopen
@@ -19,6 +21,7 @@ from bs4 import BeautifulSoup
 
 
 __author__ = ('William Schwartz', 'Christopher Holt')
+EARLIEST_DATA_SEASON = 2008
 _GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
 					 "{hometeam}-{awayteam}-{week}-{year:n}"
 					 "/spread-movement")
@@ -224,3 +227,53 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 					LOG.info('Success: %s', args)
 					tables.append(table)
 	return games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
+
+
+def seasons(years, timeout=None, concurrency=2 * cpu_count()):
+	"""Download, parse, and clean multiple seasons of NFL games and spreads.
+
+	`years` is an iterable of integers. `timeout` is measured in seconds and
+	defaults to 120 s times the number of years to obtain. `concurrency is the
+	number of threads to use, defaulting to twice the number of CPUs.
+
+	The returned table has all the columns from `game` and `season_games`.
+	"""
+	tables = None
+	years = list(years)
+	if timeout is None:
+		timeout = 120 * len(years)
+	for year in years:
+		LOG.info('=' * 34 + ' %d ' + '=' * 34, year)
+		table = season(year, timeout=timeout, concurrency=concurrency)
+		if tables is None:
+			tables = table
+		else:
+			tables.append(table)
+	return tables
+
+
+def latest_season_before(date):
+	"""Return the latest football season that started before the given `date`.
+
+	`date` should be a `datetime.date` object. This function merely assumes that
+	football season starts at the beginning of September.
+	"""
+	if date.month < 9:
+		return date.year - 1
+	return date.year
+
+
+def main(args):
+	"Print the `seasons` table for all years from 2008 to the present."
+	logging.basicConfig(
+		level=logging.DEBUG,
+		format="[%(levelname)-8s %(asctime)s] %(message)s")
+	from_ = EARLIEST_DATA_SEASON
+	to = latest_season_before(datetime.date.today())
+	table = seasons(range(from_, to + 1))
+	table.to_csv(sys.stdout, index=False)
+	return 0
+
+
+if __name__ == '__main__':
+	sys.exit(main(sys.argv[:1]))
