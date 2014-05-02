@@ -210,6 +210,7 @@ def season(year, timeout=120, concurrency=2 * cpu_count()):
 		except ValueError:
 			weeks.append(week)
 	args = zip(games.hometeam, games.awayteam, weeks)
+	# See https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor-example.
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in args:
 			arg = arg + (year,)
