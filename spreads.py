@@ -1,3 +1,13 @@
+"""Download and clean historical betting spreads for NFL games.
+
+In all the functions below, identify games by a home team, away team, week, and
+year. We indicate teams by name rather than city: 'redskins' rathern than
+'Washington', 'eagles' rather than 'PHL', '49ers' rathern than 'San Francisco
+Forty Niners'. We give weeks as integers like, `1` or `16`, or as one of
+'wild-card', 'division', 'conference',  or 'super-bowl'. Year is the year in
+which the season starts.
+"""
+
 import multiprocessing
 from concurrent import futures
 import itertools
@@ -8,6 +18,7 @@ from pandas.io.html import read_html
 from bs4 import BeautifulSoup
 
 
+__author__ = ('William Schwartz', 'Christopher Holt')
 _GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
 					 "{hometeam}-{awayteam}-{week}-{year:n}"
 					 "/spread-movement")
@@ -20,7 +31,7 @@ class CantFindTheRightTable(Exception): pass
 
 
 def game_url(hometeam, awayteam, week, year):
-	"Calculate the URL for the spreads from hometeam to awayteam."
+	"Calculate the URL for the spreads for the given game."
 	if not isinstance(week, str):
 		week = 'week-' + str(week)
 	return _GAME_URL_TEMPLATE.format(
@@ -31,7 +42,8 @@ def game(hometeam, awayteam, week, year):
 	"""Download, parse, and clean the spreads table for one game.
 
 	The columns are pinnacle, betonline, bookmaker, datetime, hometeam,
-	awayteam, week. The first three are the bookies.
+	awayteam, week. The first three are the bookies and give the spreads from
+	the point of view of the favored team (so they're generally nonpositive).
 	"""
 	with urlopen(game_url(hometeam, awayteam, week, year)) as connection:
 		page = connection.read()
@@ -90,9 +102,11 @@ def season_games_url(year):
 
 
 def season_games(year):
-	"""Return a table of games and scores for the given season.
+	"""Download, parse, and clean a table of games and scores for given season.
 
-	The columns are Week, PtsW, PtsL, winner, loser, hometeam, awayteam, date.
+	The columns are week; hometeam; awayteam; winner; date; points, yards, and
+	turn overs for the winning team; and points, yards, and turn overs for the
+	losing team.
 	"""
 	data = read_html(io=season_games_url(year),
 					  attrs={'id': 'games'},
@@ -122,7 +136,6 @@ def season_games(year):
 	data['hometeam'] =  data.WatL * data['Winner/tie'] + ~data.WatL * data['Loser/tie']
 	data['awayteam'] = ~data.WatL * data['Winner/tie'] +  data.WatL * data['Loser/tie']
 	data['winner'] = data['Winner/tie']
-	data['loser'] = data['Loser/tie']
 	for column in 'Winner/tie', 'Loser/tie', "WatL":
 		del data[column]
 	for column in 'hometeam', 'awayteam', 'winner', 'loser':
@@ -132,6 +145,7 @@ def season_games(year):
 
 
 def _download_game(args):
+	"Thread worker. Only to be used in `season` function."
 	retried = False
 	while True:
 		print('Attempting: %s' % (args,))
@@ -154,6 +168,14 @@ def _download_game(args):
 
 
 def season(year, timeout=120, concurrency=None):
+	"""Download, parse, and clean the scores & spreads for all games in a season
+
+	`timeout` is in seconds and `concurrency` is the number of threads to use,
+	defaulting to twice the number of CPUs (as this function is IO-bound).
+
+	The returned table is the JOIN of the tables that `season_game` and `game`
+	return.
+	"""
 	futures_to_args  = {}
 	tables = []
 	if concurrency is None:
