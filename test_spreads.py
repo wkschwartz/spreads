@@ -58,7 +58,7 @@ class TestOneGame(unittest.TestCase):
 		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
 		self.assertTrue(math.isnan(row.pinnacle))
 		self.assertTrue(math.isnan(row.betonline))
-		self.assertEqual(float(row.bookmaker), -7)
+		self.assertEqual(row.bookmaker, -7)
 
 	def test_season_games_url(self):
 		self.assertEqual(
