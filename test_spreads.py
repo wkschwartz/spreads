@@ -7,6 +7,16 @@ import pandas as pd
 import spreads
 
 
+TEAMS = frozenset([
+	"49ers", "bears", "bengals", "bills", "broncos", "browns", "buccaneers",
+	"cardinals", "chargers", "chiefs", "colts", "cowboys", "dolphins", "eagles",
+	"falcons", "giants", "jaguars", "jets", "lions", "packers", "panthers",
+	"patriots", "raiders", "rams", "ravens", "redskins", "saints", "seahawks",
+	"steelers", "texans", "titans", "vikings"])
+WEEKS = frozenset(list(range(1, 17 + 1)) + ['wild-card', 'divisional',
+											'conference', 'super-bowl'])
+
+
 class TestOneGame(unittest.TestCase):
 
 	def test_game_url(self):
@@ -55,3 +65,21 @@ class TestOneGame(unittest.TestCase):
 			spreads.season_games_url(2012),
 			"http://www.pro-football-reference.com/years/2012/games.htm")
 		self.assertRaises(ValueError, spreads.season_games_url, '2012')
+
+	def test_season_games(self):
+		year, nonplayoff = 2013, range(1, 17 + 1)
+		games = spreads.season_games(year)
+		self.assertEqual(frozenset(games.week), WEEKS)
+		self.assertEqual(games.game_date.dtype, np.dtype('<M8[ns]'))
+		for date, week in zip(games.game_date, games.week):
+			if isinstance(week, int):
+				self.assertEqual(date.year, year)
+			else: # Playoffs
+				self.assertEqual(date.year, year + 1)
+		for column in 'PtsW', 'PtsL', 'YdsW', 'YdsL', 'TOW', 'TOL':
+			self.assertIs(games[column].dtype, np.dtype('int64'))
+		for col in games.awayteam, games.hometeam, games.winner:
+			for team in col:
+				self.assertIn(team, TEAMS)
+		self.assertTrue(((games.winner == games.hometeam) |
+						 (games.winner == games.awayteam)).all())
