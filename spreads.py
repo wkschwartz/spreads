@@ -65,8 +65,10 @@ def game(hometeam, awayteam, week, year):
 	data = data.pop()
 
 	# Cleaning.
-	datetime = pd.to_datetime(data['Unnamed: 0'].replace(
-		r'(\d\d?/\d\d?)', r'\1/' + str(year), regex=True))
+	datetime = pd.to_datetime(
+		data['Unnamed: 0']
+		.replace(r'(\d\d?/\d\d?)', r'\1/%d' % year, regex=True)
+		.replace(r'(01|02)/(\d\d?)/\d{4}', r'\1/\2/%d' % (year + 1), regex=True))
 	del data['Unnamed: 0']
 
 	# Replace all the '--' as missing so we can convert numbers to floats.
