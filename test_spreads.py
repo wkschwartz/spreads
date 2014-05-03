@@ -25,19 +25,22 @@ class TestOneGame(unittest.TestCase):
 		# pinnacle, betonline, bookmaker: it's a float
 		for column in 'pinnacle', 'betonline', 'bookmaker':
 			self.assertIs(data[column].dtype, np.dtype('float64'))
-		# Has three other columns
-		for col in 'hometeam', 'awayteam', 'week':
+		# Has four other columns
+		for col in 'hometeam', 'awayteam', 'week', 'favored':
 			self.assertIn(col, data.keys())
+		self.assertTrue((data.favored == data.hometeam).all() or
+						(data.favored == data.awayteam).all())
 
 	def test_game(self):
 		hometeam, awayteam, week, year = 'ravens', 'broncos', 1, 2013
 		data = spreads.game(hometeam, awayteam, week, year)
 		self.assert_columns(data, year)
-		# hometeam=ravens, awayteam=broncos, week=1
+		# hometeam=ravens, awayteam=broncos, week=1, favored=broncos
 		for x in data.hometeam:
 			self.assertEqual(x, hometeam)
-		for x in data.awayteam:
-			self.assertEqual(x, awayteam)
+		for col in data.awayteam, data.favored:
+			for x in data.awayteam:
+				self.assertEqual(x, awayteam)
 		for x in data.week:
 			self.assertEqual(x, week)
 		# Test the contents of the first row
