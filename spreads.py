@@ -12,6 +12,7 @@ import logging
 import datetime
 import sys
 import re
+import warnings
 from multiprocessing import cpu_count
 from concurrent import futures
 from urllib.request import urlopen
@@ -133,8 +134,14 @@ def season_games(year):
 
 	# Cleaning.
 	del data["Unnamed: 3"]
-	# These rows are mid-table header rows.
-	data = data[data.Week != "Week"][data.Week != "nan"]
+	# The code below issues "UserWarning: " So we catch UserWarnings.
+	with warnings.catch_warnings():
+		warnings.filterwarnings(action='ignore', category=UserWarning,
+								module=r'pandas\.core\.frame',
+								message=(r"Boolean Series key will be reindexed"
+										 r" to match DataFrame index\."))
+		# These rows are mid-table header rows.
+		data = data[data.Week != "Week"][data.Week != "nan"]
 
 	data['week'] = (data.Week
 					.replace("WildCard", "wild-card")
