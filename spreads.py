@@ -181,26 +181,25 @@ def season_games(year):
 	return data
 
 
-def _download_game(args):
-	"Thread worker. Only to be used in `season` function."
-	retried = False
-	while True:
-		try:
-			g = game(*args)
-		except (CantFindTheRightTable, ValueError):
-			if retried:
-				raise
-			else:
-				# Maybe the home/away info is bad, so swap teams.
-				args = list(args)
-				args[0], args[1] = args[1], args[0]
-				retried = True
-		else:
-			if retried:
-				awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
-				g.hometeam, g.awayteam = hometeam, awayteam
-				g['home_away_discrepency'] = True
-			return g
+def game_unknown_homeaway(team_a, team_b, week, year):
+	"""Convenience wrapper for `game` when you're not sure who's the home team.
+
+	We first try calling `game` with `team_a` as the home team, and if that
+	doesn't work, we next try `team_b`. In the former case we add a column
+	called `home_away_discrepency` equal to `False`. In the latter case the
+	column contains `True` and the `awayteam` and `hometeam` columns are swapped
+	to make it easier to merge with data from `season_games`.
+	"""
+	try:
+		g = game(team_a, team_b, week, year)
+	except (CantFindTheRightTable, ValueError):
+		g = game(team_b, team_a, week, year)
+		awayteam, hometeam = g.hometeam.copy(), g.awayteam.copy()
+		g.hometeam, g.awayteam = hometeam, awayteam
+		g['home_away_discrepency'] = True
+	else:
+		g['home_away_discrepency'] = False
+	return g
 
 
 def season(year, timeout=None, concurrency=cpu_count()):
@@ -219,7 +218,7 @@ def season(year, timeout=None, concurrency=cpu_count()):
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in zip(games.hometeam, games.awayteam, games.week):
 			arg = arg + (year,)
-			futures_to_args[pool.submit(_download_game, arg)] = arg
+			futures_to_args[pool.submit(game_unknown_homeaway, *arg)] = arg
 		for future in futures.as_completed(futures_to_args, timeout=timeout):
 			args = futures_to_args[future]
 			try:

@@ -97,3 +97,20 @@ class TestOneGame(unittest.TestCase):
 				self.assertIn(team, TEAMS)
 		self.assertTrue(((games.winner == games.hometeam) |
 						 (games.winner == games.awayteam)).all())
+
+	def test_game_unknown_homeaway(self):
+		# In reality, ravens were home
+		hometeam, awayteam, week, year = 'broncos', 'ravens', 1, 2013
+		data = spreads.game_unknown_homeaway(hometeam, awayteam, week, year)
+		self.assert_columns(data, hometeam, awayteam, week, year)
+		for x in data.favored:
+			self.assertEqual(x, hometeam)
+		# Test the contents of the first row
+		row = data.loc[0]
+		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
+		self.assertTrue(math.isnan(row.pinnacle))
+		self.assertTrue(math.isnan(row.betonline))
+		self.assertEqual(row.bookmaker, -7)
+
+		for x in data.home_away_discrepency:
+			self.assertEqual(x, True)
