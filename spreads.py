@@ -148,7 +148,10 @@ def season_games(year):
 	del data['Week']
 
 	data['game_date'] = pd.to_datetime(
-		data.Date.replace("$", ", %d" % year, regex=True))
+		data.Date
+		.replace(r"$", r", %d" % year, regex=True)
+		.replace(r"^(January|February) (\d+), \d+$", r"\1 \2, %d" % (year + 1),
+				 regex=True))
 	del data['Date']
 
 	for column in "PtsW", "PtsL", "YdsW", "TOW", "YdsL", "TOL":
