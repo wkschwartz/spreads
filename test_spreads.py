@@ -27,11 +27,18 @@ class TestOneGame(unittest.TestCase):
 			spreads.game_url('seahawks', 'broncos', 'super-bowl', 2013),
 			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
 
-	def assert_columns(self, data, year):
+	def assert_columns(self, data, hometeam, awayteam, week, year):
 		# Date: check type, check year
 		self.assertEqual(data.datetime.dtype, np.dtype('<M8[ns]'))
 		for date in data.datetime:
 			self.assertEqual(date.year, year)
+		# Check arguments are in the table correctly
+		for x in data.awayteam:
+			self.assertEqual(x, awayteam)
+		for x in data.hometeam:
+			self.assertEqual(x, hometeam)
+		for x in data.week:
+			self.assertEqual(x, week)
 		# pinnacle, betonline, bookmaker: it's a float
 		for column in 'pinnacle', 'betonline', 'bookmaker':
 			self.assertIs(data[column].dtype, np.dtype('float64'))
@@ -44,21 +51,28 @@ class TestOneGame(unittest.TestCase):
 	def test_game(self):
 		hometeam, awayteam, week, year = 'ravens', 'broncos', 1, 2013
 		data = spreads.game(hometeam, awayteam, week, year)
-		self.assert_columns(data, year)
-		# hometeam=ravens, awayteam=broncos, week=1, favored=broncos
-		for x in data.hometeam:
-			self.assertEqual(x, hometeam)
-		for col in data.awayteam, data.favored:
-			for x in data.awayteam:
-				self.assertEqual(x, awayteam)
-		for x in data.week:
-			self.assertEqual(x, week)
+		self.assert_columns(data, hometeam, awayteam, week, year)
+		for x in data.favored:
+			self.assertEqual(x, awayteam)
 		# Test the contents of the first row
 		row = data.loc[0]
 		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
 		self.assertTrue(math.isnan(row.pinnacle))
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(row.bookmaker, -7)
+
+	def test_playoff_game(self):
+		hometeam, awayteam, week, year = 'seahawks', 'broncos', 'super-bowl', 2013
+		data = spreads.game(hometeam, awayteam, week, year)
+		self.assert_columns(data, hometeam, awayteam, week, year + 1)
+		for x in data.favored:
+			self.assertEqual(x, awayteam)
+		# Test the contents of the first row
+		row = data.loc[0]
+		self.assertEqual(str(row.datetime), '2014-02-02 18:35:00')
+		self.assertTrue(math.isnan(row.pinnacle))
+		self.assertTrue(math.isnan(row.betonline))
+		self.assertEqual(row.bookmaker, -2)
 
 	def test_season_games_url(self):
 		self.assertEqual(
