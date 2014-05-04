@@ -20,13 +20,21 @@ WEEKS = frozenset(list(range(1, 17 + 1)) + ['wild-card', 'divisional',
 
 class TestOneGame(unittest.TestCase):
 
-	def test_game_url(self):
+	def test_spread_url(self):
 		self.assertEqual(
-			spreads.game_url('ravens', 'broncos', 1, 2013),
+			spreads.spread_url('ravens', 'broncos', 1, 2013),
 			"http://www.teamrankings.com/nfl/matchup/ravens-broncos-week-1-2013/spread-movement")
 		self.assertEqual(
-			spreads.game_url('seahawks', 'broncos', 'super-bowl', 2013),
+			spreads.spread_url('seahawks', 'broncos', 'super-bowl', 2013),
 			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/spread-movement")
+
+	def test_over_under_url(self):
+		self.assertEqual(
+			spreads.over_under_url('ravens', 'broncos', 1, 2013),
+			"http://www.teamrankings.com/nfl/matchup/ravens-broncos-week-1-2013/over-under-movement")
+		self.assertEqual(
+			spreads.over_under_url('seahawks', 'broncos', 'super-bowl', 2013),
+			"http://www.teamrankings.com/nfl/matchup/seahawks-broncos-super-bowl-2013/over-under-movement")
 
 	def assert_columns(self, data, hometeam, awayteam, week, year):
 		# Date: check type, check year
@@ -41,8 +49,9 @@ class TestOneGame(unittest.TestCase):
 		for x in data.week:
 			self.assertEqual(x, week)
 		# pinnacle, betonline, bookmaker: it's a float
-		for column in 'pinnacle', 'betonline', 'bookmaker':
-			self.assertIs(data[column].dtype, np.dtype('float64'))
+		for prefix in 'pinnacle', 'betonline', 'bookmaker':
+			for suffix in '_spread', '_over_under':
+				self.assertIs(data[prefix + suffix].dtype, np.dtype('float64'))
 		# Has four other columns
 		for col in 'hometeam', 'awayteam', 'week', 'favored':
 			self.assertIn(col, data.keys())
@@ -58,9 +67,9 @@ class TestOneGame(unittest.TestCase):
 		# Test the contents of the first row
 		row = data.loc[0]
 		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
-		self.assertTrue(math.isnan(row.pinnacle))
-		self.assertTrue(math.isnan(row.betonline))
-		self.assertEqual(row.bookmaker, -7)
+		self.assertTrue(math.isnan(row.pinnacle_spread))
+		self.assertTrue(math.isnan(row.betonline_spread))
+		self.assertEqual(row.bookmaker_spread, -7)
 
 	def test_playoff_game(self):
 		hometeam, awayteam, week, year = 'seahawks', 'broncos', 'super-bowl', 2013
@@ -71,9 +80,11 @@ class TestOneGame(unittest.TestCase):
 		# Test the contents of the first row
 		row = data.loc[0]
 		self.assertEqual(str(row.datetime), '2014-02-02 18:35:00')
-		self.assertTrue(math.isnan(row.pinnacle))
-		self.assertTrue(math.isnan(row.betonline))
-		self.assertEqual(row.bookmaker, -2)
+		for x in (row.pinnacle_spread, row.betonline_spread,
+				  row.pinnacle_over_under, row.betonline_over_under):
+			self.assertTrue(math.isnan(x))
+		self.assertEqual(row.bookmaker_spread, -2)
+		self.assertEqual(row.bookmaker_over_under, 47.0)
 
 	def test_favored_team_with_dot_in_city_name(self):
 		"St. Louis was messing up the favored-team detector."
@@ -85,9 +96,11 @@ class TestOneGame(unittest.TestCase):
 		# Test the contents of the first row
 		row = data.loc[0]
 		self.assertEqual(str(row.datetime), '2013-09-08 16:35:00')
-		self.assertTrue(math.isnan(row.pinnacle))
-		self.assertTrue(math.isnan(row.betonline))
-		self.assertEqual(row.bookmaker, -3.5)
+		for x in (row.pinnacle_spread, row.betonline_spread,
+				  row.pinnacle_over_under, row.betonline_over_under):
+			self.assertTrue(math.isnan(x))
+		self.assertEqual(row.bookmaker_spread, -3.5)
+		self.assertEqual(row.bookmaker_over_under, 43.5)
 
 	def test_game_unknown_homeaway(self):
 		# In reality, ravens were home
@@ -99,9 +112,11 @@ class TestOneGame(unittest.TestCase):
 		# Test the contents of the first row
 		row = data.loc[0]
 		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
-		self.assertTrue(math.isnan(row.pinnacle))
-		self.assertTrue(math.isnan(row.betonline))
-		self.assertEqual(row.bookmaker, -7)
+		for x in (row.pinnacle_spread, row.betonline_spread,
+				  row.pinnacle_over_under, row.betonline_over_under):
+			self.assertTrue(math.isnan(x))
+		self.assertEqual(row.bookmaker_spread, -7)
+		self.assertEqual(row.bookmaker_over_under, 48.0)
 
 		for x in data.home_away_discrepency:
 			self.assertEqual(x, True)
@@ -167,7 +182,9 @@ class TestSeason(unittest.TestCase):
 		self.assertEqual(spreads.latest_season_before(d), 2014)
 
 	def test_hometeamify(self):
-		spread_cols = ('pinnacle', 'betonline', 'bookmaker')
+		spread_cols = (prefix + suffix for prefix in
+					   ('pinnacle', 'betonline', 'bookmaker') for suffix in
+					   ('_spread', '_over_under'))
 		table = spreads.hometeamify(self.table)
 
 		# Deleted columns

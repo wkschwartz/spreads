@@ -27,8 +27,9 @@ from bs4 import BeautifulSoup
 __author__ = ('William Schwartz', 'Christopher Holt')
 EARLIEST_DATA_SEASON = 2008
 _GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
-					 "{hometeam}-{awayteam}-{week}-{year:n}"
-					 "/spread-movement")
+					  "{hometeam}-{awayteam}-{week}-{year:n}")
+_SPREAD_URL_TEMPLATE = _GAME_URL_TEMPLATE + "/spread-movement"
+_OVER_UNDER_URL_TEMPLATE = _GAME_URL_TEMPLATE + "/over-under-movement"
 FAVORED_RE = re.compile(r'\|\s+Odds:\s+(?P<city>[a-zA-Z. ]+)\s+by\s+[0-9.]+,')
 _SEASON_URL_TEMPLATE = ("http://www.pro-football-reference.com/years/"
 					   "{year:n}"
@@ -39,62 +40,90 @@ LOG = logging.getLogger(__name__)
 class CantFindTheRightTable(Exception): pass
 
 
-def game_url(hometeam, awayteam, week, year):
+def spread_url(hometeam, awayteam, week, year):
 	"Calculate the URL for the spreads for the given game."
 	if not isinstance(week, str):
 		week = 'week-' + str(week)
-	return _GAME_URL_TEMPLATE.format(
+	return _SPREAD_URL_TEMPLATE.format(
+		hometeam=hometeam, awayteam=awayteam, week=week, year=year)
+
+
+def over_under_url(hometeam, awayteam, week, year):
+	"Calculate the URL for the spreads for the given game."
+	if not isinstance(week, str):
+		week = 'week-' + str(week)
+	return _OVER_UNDER_URL_TEMPLATE.format(
 		hometeam=hometeam, awayteam=awayteam, week=week, year=year)
 
 
 def game(hometeam, awayteam, week, year):
-	"""Download, parse, and clean the spreads table for one game.
+	"""Download, parse, and clean the spreads & over-under tables for one game.
 
-	The columns are pinnacle, betonline, bookmaker, datetime, hometeam,
-	awayteam, week. The first three are the bookies and give the spreads from
-	the point of view of the favored team (so they're generally nonpositive).
+	The columns are pinnacle, betonline, bookmaker each with suffix _spread or
+	_over_under; datetime; hometeam, awayteam, favored; week. The first three
+	are the bookies and give the spreads from the point of view of the favored
+	team (so they're generally nonpositive).
 	"""
-	with urlopen(game_url(hometeam, awayteam, week, year)) as connection:
-		page = connection.read()
+	with urlopen(spread_url(hometeam, awayteam, week, year)) as connection:
+		spreads_page = connection.read()
 	# Note that infer_types is deprecated and won't work starting in Pandas 0.14
 	LOG.debug('Getting game %s', (hometeam, awayteam, week, year))
-	data = read_html(io=page.decode('utf-8'),
+	sp = read_html(io=spreads_page.decode('utf-8'),
 					 match="History", attrs={'id': 'table-000'},
 					 infer_types=False, header=0,
 					 skiprows=[1, 2, 3])
-	if len(data) != 1:
+	if len(sp) != 1:
 		raise CantFindTheRightTable
-	data = data.pop()
+	sp = sp.pop()
+
+	# Get the over-under page
+	ou = read_html(io=over_under_url(hometeam, awayteam, week, year),
+				   match="History", attrs={'cellspacing': 0},
+				   infer_types=False, header=0,
+				   skiprows=[1, 2, 3])
+	if len(ou) != 1:
+		raise CantFindTheRightTable
+	ou = ou.pop()
 
 	# Cleaning.
-	datetime = pd.to_datetime(
-		data['Unnamed: 0']
-		.replace(r'(\d\d?/\d\d?)', r'\1/%d' % year, regex=True)
-		.replace(r'(01|02)/(\d\d?)/\d{4}', r'\1/\2/%d' % (year + 1), regex=True))
-	del data['Unnamed: 0']
+	for t, name, date_col in (sp, 'spread', 'Unnamed: 0'), (ou, 'over_under', '\xa0'):
+		datetime = pd.to_datetime(
+			t[date_col]
+			.replace(r'(\d\d?/\d\d?)', r'\1/%d' % year, regex=True)
+			.replace(r'(01|02)/(\d\d?)/\d{4}', r'\1/\2/%d' % (year + 1),
+					 regex=True))
+		del t[date_col]
 
-	# Replace all the '--' as missing so we can convert numbers to floats.
-	for column in data.keys():
-		data[column] = (data[column]
-						.replace('--', 'nan')
-						.replace('(Pick)', 0)
-						.apply(float))
+		# Replace all the '--' as missing so we can convert numbers to floats.
+		for column in t.keys():
+			t[column] = (t[column]
+						 .replace('--', 'nan')
+						 .replace('(Pick)', 0)
+						 .apply(float))
 
-	# Add datetime back in after the str-to-float conversion so we don't do it
-	# for the datetime.
-	data['datetime'] = datetime
+		# Add datetime back in after the str-to-float conversion so we don't do
+		# it for the datetime.
+		t['datetime'] = datetime
+
+		# Lowercase column names for ease of programming later
+		t.columns = [h.lower() for h in t.columns]
+
+		# Give spreads/over-under their suffixes
+		for col in 'pinnacle', 'betonline', 'bookmaker':
+			t[col + '_' + name] = t[col]
+			del t[col]
+
+	data = sp.merge(ou, on=['datetime'], how='outer')
+	assert set(data.datetime) == (set(sp.datetime) | set(ou.datetime))
 
 	# Add this function's arguments to the table.
 	data['hometeam'] = hometeam
 	data['awayteam'] = awayteam
 	data['week'] = week
 
-	# Lowercase column names for ease of programming later
-	data.columns = [h.lower() for h in data.columns]
-
 	# Get favored team from the big "Odds: Washington by 4," that shows up at the
 	# top of the page.
-	soup = BeautifulSoup(page)
+	soup = BeautifulSoup(spreads_page)
 	subheader = soup.find('p', attrs={'class': 'h1-sub'}).find('strong')
 	m = FAVORED_RE.search(subheader.contents[0])
 	if m is None or not m.group('city'):
@@ -300,7 +329,7 @@ def hometeamify(t):
 	# Favored-team based columns
 	to_swap, to_keep = t.favored == t.awayteam, t.favored == t.hometeam
 	assert (to_keep == ~to_swap).all()
-	for col in 'pinnacle', 'betonline', 'bookmaker':
+	for col in 'pinnacle_spread', 'betonline_spread', 'bookmaker_spread':
 		t[col] = -1 * to_swap * t[col] + to_keep * t[col]
 	del t['favored']
 	return t
