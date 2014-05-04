@@ -90,8 +90,10 @@ class TestOneGame(unittest.TestCase):
 				self.assertEqual(date.year, year)
 			else: # Playoffs
 				self.assertEqual(date.year, year + 1)
-		for column in 'PtsW', 'PtsL', 'YdsW', 'YdsL', 'TOW', 'TOL':
+		for column in 'PtsW', 'PtsL', 'YdsW', 'YdsL', 'TOW', 'TOL', 'season':
 			self.assertIs(games[column].dtype, np.dtype('int64'))
+		for x in games.season:
+			self.assertEqual(x, year)
 		for col in games.awayteam, games.hometeam, games.winner:
 			for team in col:
 				self.assertIn(team, TEAMS)
