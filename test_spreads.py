@@ -166,3 +166,81 @@ class TestSeason(unittest.TestCase):
 		d = datetime.date(2014, 10, 7)
 		self.assertEqual(spreads.latest_season_before(d), 2014)
 
+	def test_hometeamify(self):
+		spread_cols = ('pinnacle', 'betonline', 'bookmaker')
+		table = spreads.hometeamify(self.table)
+
+		# Deleted columns
+		cols = table.keys()
+		deleted = ('winner', 'favored', 'PtsW', 'PtsL', 'YdsW', 'YdsL', 'TOW',
+				   'TOL')
+		for d in deleted:
+			self.assertNotIn(d, cols)
+
+		# New column types
+		for prefix in 'points', 'yards', 'turn_overs':
+			for suffix in '_home', '_away':
+				self.assertEqual(table[prefix+suffix].dtype, np.dtype('int64'))
+		for col in spread_cols:
+			self.assertEqual(table[col].dtype, np.dtype('float64'))
+
+		# Four Cases
+		# favored = home, winner = home
+		hometeam, awayteam = 'broncos', 'ravens'
+		t = table[table.hometeam == hometeam]
+		self.assertGreater(len(t), 0)
+		self.assertTrue((t.points_home == 49).all())
+		self.assertTrue((t.points_away == 27).all())
+		self.assertTrue((t.yards_home == 510).all())
+		self.assertTrue((t.yards_away == 393).all())
+		self.assertTrue((t.turn_overs_home == 2).all())
+		self.assertTrue((t.turn_overs_away == 2).all())
+		for col in spread_cols:
+			for v in t[col]:
+				if not math.isnan(v):
+					self.assertLess(v, 0)
+
+		# favored = away, winner = home
+		hometeam, awayteam = 'jets', 'buccaneers'
+		t = table[table.hometeam == hometeam]
+		self.assertGreater(len(t), 0)
+		self.assertTrue((t.points_home == 18).all())
+		self.assertTrue((t.points_away == 17).all())
+		self.assertTrue((t.yards_home == 304).all())
+		self.assertTrue((t.yards_away == 250).all())
+		self.assertTrue((t.turn_overs_home == 2).all())
+		self.assertTrue((t.turn_overs_away == 2).all())
+		for col in spread_cols:
+			for v in t[col]:
+				if not math.isnan(v):
+					self.assertGreater(v, 0)
+
+		# favored = home, winner = away
+		hometeam, awayteam = 'steelers', 'titans'
+		t = table[table.hometeam == hometeam]
+		self.assertGreater(len(t), 0)
+		self.assertTrue((t.points_home == 9).all())
+		self.assertTrue((t.points_away == 16).all())
+		self.assertTrue((t.yards_home == 194).all())
+		self.assertTrue((t.yards_away == 229).all())
+		self.assertTrue((t.turn_overs_home == 2).all())
+		self.assertTrue((t.turn_overs_away == 0).all())
+		for col in spread_cols:
+			for v in t[col]:
+				if not math.isnan(v):
+					self.assertLess(v, 0)
+
+		# favored = away, winner = away
+		hometeam, awayteam = 'bills', 'patriots'
+		t = table[table.hometeam == hometeam]
+		self.assertGreater(len(t), 0)
+		self.assertTrue((t.points_home == 21).all())
+		self.assertTrue((t.points_away == 23).all())
+		self.assertTrue((t.yards_home == 286).all())
+		self.assertTrue((t.yards_away == 431).all())
+		self.assertTrue((t.turn_overs_home == 2).all())
+		self.assertTrue((t.turn_overs_away == 3).all())
+		for col in spread_cols:
+			for v in t[col]:
+				if not math.isnan(v):
+					self.assertGreater(v, 0)

@@ -272,6 +272,40 @@ def seasons(years, timeout=None, concurrency=cpu_count()):
 	return tables, failures
 
 
+def hometeamify(t):
+	"""Convert a `season`-generated table `t` so the data is home-team centric.
+
+	`season` generates a table whose points, yards, and turn-overs columns are
+	broken down by winning and losing team and whose spreads columns are
+	relative to the favored team. Convert all these winner/loser based columns
+	to be home/away based and convert the spreads columns to be home-team
+	based.
+
+	The resulting table replaces columns Pts, Yds, TO (all with W and L
+	suffixes) with columns points, yards, turn_overs (all with home and away
+	suffixes), but leaves the spreads columns intact (but modified). The winner
+	and favored columns are removed. The returned table is a copy, leaving the
+	function argument unodified.
+	"""
+	t = t.copy()
+	# Winner/loser based columns
+	hw, aw = t.hometeam == t.winner, t.awayteam == t.winner
+	assert (hw == ~aw).all()
+	# Suffix for keys = W for winner L for loser. Values are new names
+	for old, new in {'Pts': 'points', 'Yds': 'yards', 'TO': 'turn_overs'}.items():
+		t[new + '_home'] = (hw * t[old + 'W'] + aw * t[old + 'L'])
+		t[new + '_away'] = (aw * t[old + 'W'] + hw * t[old + 'L'])
+		del t[old + 'L'], t[old + 'W']
+	del t['winner']
+	# Favored-team based columns
+	to_swap, to_keep = t.favored == t.awayteam, t.favored == t.hometeam
+	assert (to_keep == ~to_swap).all()
+	for col in 'pinnacle', 'betonline', 'bookmaker':
+		t[col] = -1 * to_swap * t[col] + to_keep * t[col]
+	del t['favored']
+	return t
+
+
 def latest_season_before(date):
 	"""Return the latest football season that started before the given `date`.
 
