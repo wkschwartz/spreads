@@ -113,6 +113,12 @@ class TestOneGame(unittest.TestCase):
 				self.assertIn(team, TEAMS)
 		self.assertTrue(((games.winner == games.hometeam) |
 						 (games.winner == games.awayteam)).all())
+		# Check that home/away is calculated correctly. Just do first week.
+		g = games[games.week == 1]
+		self.assertEqual(len(g[g.hometeam == 'broncos']), 1)
+		self.assertEqual(len(g[g.awayteam == 'ravens']), 1)
+		self.assertEqual(len(g[g.hometeam == 'chargers']), 1)
+		self.assertEqual(len(g[g.awayteam == 'texans']), 1)
 
 	def test_game_unknown_homeaway(self):
 		# In reality, ravens were home

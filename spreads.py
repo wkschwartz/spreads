@@ -171,10 +171,10 @@ def season_games(year):
 
 	data['WatL'] = data['Unnamed: 5'].apply(lambda x: x == '@')
 	del data['Unnamed: 5']
-	data['hometeam'] = (data.WatL * data['Winner/tie'] +
-						~data.WatL * data['Loser/tie'])
-	data['awayteam'] = (~data.WatL * data['Winner/tie'] +
+	data['hometeam'] = (~data.WatL * data['Winner/tie'] +
 						data.WatL * data['Loser/tie'])
+	data['awayteam'] = (data.WatL * data['Winner/tie'] +
+						~data.WatL * data['Loser/tie'])
 	data['winner'] = data['Winner/tie']
 	for column in 'Winner/tie', 'Loser/tie', "WatL":
 		del data[column]
