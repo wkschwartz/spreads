@@ -6,6 +6,8 @@ year. We indicate teams by name rather than city: 'redskins' rathern than
 Forty Niners'. We give weeks as integers like, `1` or `16`, or as one of
 'wild-card', 'division', 'conference',  or 'super-bowl'. Year is the year in
 which the season starts.
+
+All the functions that return tables return them as Pandas DataFrames.
 """
 
 import logging
@@ -208,12 +210,13 @@ def season(year, timeout=None, concurrency=cpu_count()):
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
 	defaulting to the number of CPUs.
 
-	The returned table is the JOIN of the tables that `season_game` and `game`
-	return.
+	This function returns two values. The first is the table, which is the the
+	merger of the tables that `season_games` and `game` return. The second is a
+	list of `game` arguments that caused `game` to fail.
 	"""
 	LOG.debug('Concurrency = %d', concurrency)
 	games = season_games(year)
-	tables, futures_to_args = [], {}
+	tables, futures_to_args, failures = [], {}, []
 	# See https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor-example.
 	with futures.ThreadPoolExecutor(concurrency) as pool:
 		for arg in zip(games.hometeam, games.awayteam, games.week):
@@ -228,10 +231,12 @@ def season(year, timeout=None, concurrency=cpu_count()):
 			else:
 				if table is None:
 					LOG.error('Failure: %s', args)
+					failures.append(args)
 				else:
 					LOG.info('Success: %s', args)
 					tables.append(table)
-	return games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
+	tables = games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
+	return tables, failures
 
 
 def seasons(years, timeout=None, concurrency=cpu_count()):
@@ -241,18 +246,22 @@ def seasons(years, timeout=None, concurrency=cpu_count()):
 	seconds. `concurrency is the number of threads to use, defaulting to the
 	number of CPUs.
 
-	The returned table has all the columns from `game` and `season_games`.
+	This function returns two values. The first is the table, which is the the
+	merger of the tables that `season_games` and `game` return. The second is a
+	list of `game` arguments that caused `game` to fail.
 	"""
-	tables = None
+	tables, failures = None
 	years = list(years)
 	for year in years:
 		LOG.info('=' * 10 + ' %d ' + '=' * 10, year)
-		table = season(year, timeout=timeout, concurrency=concurrency)
+		table, failure = season(year, timeout=timeout, concurrency=concurrency)
 		if tables is None:
 			tables = table
+			failures = failure
 		else:
 			tables.append(table)
-	return tables
+			failures.extend(failure)
+	return tables, failures
 
 
 def latest_season_before(date):
@@ -273,7 +282,7 @@ def main(args):
 		format="[%(levelname)-8s %(asctime)s] %(message)s")
 	from_ = EARLIEST_DATA_SEASON
 	to = latest_season_before(datetime.date.today())
-	table = seasons(range(from_, to + 1))
+	table, failures = seasons(range(from_, to + 1))
 	table.to_csv(sys.stdout, index=False)
 	return 0
 
