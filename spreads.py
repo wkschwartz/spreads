@@ -243,7 +243,7 @@ def season(year, week=None, timeout=None, concurrency=cpu_count()):
 	tables = games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
 	if __debug__:
 		n = len(tables.groupby(['hometeam', 'awayteam', 'week']))
-	assert n == expected_n, ("Expected %d rows, got %d" % (expected_n, n))
+		assert n == expected_n, "Expected %d games, got %d" % (expected_n, n)
 	return tables, failures
 
 
