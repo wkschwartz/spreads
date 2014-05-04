@@ -205,11 +205,12 @@ def game_unknown_homeaway(team_a, team_b, week, year):
 	return g
 
 
-def season(year, timeout=None, concurrency=cpu_count()):
+def season(year, week=None, timeout=None, concurrency=cpu_count()):
 	"""Download, parse, and clean the scores & spreads for all games in a season
 
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
-	defaulting to the number of CPUs.
+	defaulting to the number of CPUs. If not `None`, `week` limits the games
+	fetched to those in the given week.
 
 	This function returns two values. The first is the table, which is the the
 	merger of the tables that `season_games` and `game` return. The second is a
@@ -217,6 +218,8 @@ def season(year, timeout=None, concurrency=cpu_count()):
 	"""
 	LOG.debug('Concurrency = %d', concurrency)
 	games = season_games(year)
+	if week is not None:
+		games = games[games.week == week]
 	tables, futures_to_args, failures = [], {}, []
 	# See https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor-example.
 	with futures.ThreadPoolExecutor(concurrency) as pool:
