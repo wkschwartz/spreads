@@ -4,7 +4,7 @@ In all the functions below, identify games by a home team, away team, week, and
 year. We indicate teams by name rather than city: 'redskins' rathern than
 'Washington', 'eagles' rather than 'PHL', '49ers' rathern than 'San Francisco
 Forty Niners'. We give weeks as integers like, `1` or `16`, or as one of
-'wild-card', 'division', 'conference',  or 'super-bowl'. Year is the year in
+'wild-card', 'divisional', 'conference',  or 'super-bowl'. Year is the year in
 which the season starts.
 
 All the functions that return tables return them as Pandas DataFrames.
