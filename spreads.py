@@ -220,6 +220,7 @@ def season(year, week=None, timeout=None, concurrency=cpu_count()):
 	games = season_games(year)
 	if week is not None:
 		games = games[games.week == week]
+	expected_n = len(games)
 	tables, futures_to_args, failures = [], {}, []
 	# See https://docs.python.org/3/library/concurrent.futures.html#threadpoolexecutor-example.
 	with futures.ThreadPoolExecutor(concurrency) as pool:
@@ -240,6 +241,9 @@ def season(year, week=None, timeout=None, concurrency=cpu_count()):
 					LOG.info('Success: %s', args)
 					tables.append(table)
 	tables = games.merge(pd.concat(tables), on=('hometeam', 'awayteam', 'week'))
+	if __debug__:
+		n = len(tables.groupby(['hometeam', 'awayteam', 'week']))
+	assert n == expected_n, ("Expected %d rows, got %d" % (expected_n, n))
 	return tables, failures
 
 
