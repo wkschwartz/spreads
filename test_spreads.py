@@ -1,5 +1,6 @@
 import math
 import unittest
+import datetime
 
 import numpy as np
 import pandas as pd
@@ -88,11 +89,50 @@ class TestOneGame(unittest.TestCase):
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(row.bookmaker, -3.5)
 
+	def test_game_unknown_homeaway(self):
+		# In reality, ravens were home
+		hometeam, awayteam, week, year = 'broncos', 'ravens', 1, 2013
+		data = spreads.game_unknown_homeaway(hometeam, awayteam, week, year)
+		self.assert_columns(data, hometeam, awayteam, week, year)
+		for x in data.favored:
+			self.assertEqual(x, hometeam)
+		# Test the contents of the first row
+		row = data.loc[0]
+		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
+		self.assertTrue(math.isnan(row.pinnacle))
+		self.assertTrue(math.isnan(row.betonline))
+		self.assertEqual(row.bookmaker, -7)
+
+		for x in data.home_away_discrepency:
+			self.assertEqual(x, True)
+
+
+class TestSeason(unittest.TestCase):
+
+	# When the tests in this class run, they have access to `self.table`, which
+	# is the `season` table for 2013 week 1.
+
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		cls.year, cls.week = 2013, 1
+		cls.table, cls.failures = spreads.season(cls.year, week=cls.week)
+
+	def setUp(self):
+		super().setUp()
+		self.table = self.table.copy()
+		self.failures = list(self.failures)
+
 	def test_season_games_url(self):
 		self.assertEqual(
 			spreads.season_games_url(2012),
 			"http://www.pro-football-reference.com/years/2012/games.htm")
 		self.assertRaises(ValueError, spreads.season_games_url, '2012')
+
+	def test_season(self):
+		self.assertFalse(self.failures)
+		for x in self.table.week:
+			self.assertEqual(x, self.week)
 
 	def test_season_games(self):
 		year, nonplayoff = 2013, range(1, 17 + 1)
@@ -120,19 +160,9 @@ class TestOneGame(unittest.TestCase):
 		self.assertEqual(len(g[g.hometeam == 'chargers']), 1)
 		self.assertEqual(len(g[g.awayteam == 'texans']), 1)
 
-	def test_game_unknown_homeaway(self):
-		# In reality, ravens were home
-		hometeam, awayteam, week, year = 'broncos', 'ravens', 1, 2013
-		data = spreads.game_unknown_homeaway(hometeam, awayteam, week, year)
-		self.assert_columns(data, hometeam, awayteam, week, year)
-		for x in data.favored:
-			self.assertEqual(x, hometeam)
-		# Test the contents of the first row
-		row = data.loc[0]
-		self.assertEqual(str(row.datetime), '2013-09-05 21:05:00')
-		self.assertTrue(math.isnan(row.pinnacle))
-		self.assertTrue(math.isnan(row.betonline))
-		self.assertEqual(row.bookmaker, -7)
+	def test_latest_season_before(self):
+		d = datetime.date(2014, 2, 7)
+		self.assertEqual(spreads.latest_season_before(d), 2013)
+		d = datetime.date(2014, 10, 7)
+		self.assertEqual(spreads.latest_season_before(d), 2014)
 
-		for x in data.home_away_discrepency:
-			self.assertEqual(x, True)
