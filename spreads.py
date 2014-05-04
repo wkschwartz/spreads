@@ -124,8 +124,8 @@ def season_games(year):
 	"""Download, parse, and clean a table of games and scores for given season.
 
 	The columns are week; hometeam; awayteam; winner; date; points, yards, and
-	turn overs for the winning team; and points, yards, and turn overs for the
-	losing team.
+	turn overs for the winning team; points, yards, and turn overs for the
+	losing team; and season.
 	"""
 	LOG.debug('Getting season %d', year)
 	data = read_html(io=season_games_url(year),
@@ -158,6 +158,7 @@ def season_games(year):
 								   else s)))
 	del data['Week']
 
+	data['season'] = year
 	data['game_date'] = pd.to_datetime(
 		data.Date
 		.replace(r"$", r", %d" % year, regex=True)
