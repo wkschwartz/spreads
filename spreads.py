@@ -29,7 +29,7 @@ EARLIEST_DATA_SEASON = 2008
 _GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
 					 "{hometeam}-{awayteam}-{week}-{year:n}"
 					 "/spread-movement")
-FAVORED_RE = re.compile(r'\|\s+Odds:\s+(?P<city>[a-zA-Z ]+)\s+by\s+[0-9.]+,')
+FAVORED_RE = re.compile(r'\|\s+Odds:\s+(?P<city>[a-zA-Z. ]+)\s+by\s+[0-9.]+,')
 _SEASON_URL_TEMPLATE = ("http://www.pro-football-reference.com/years/"
 					   "{year:n}"
 					   "/games.htm")
@@ -100,7 +100,7 @@ def game(hometeam, awayteam, week, year):
 	if m is None or not m.group('city'):
 		raise ValueError("Couldn't figure out who was favored: %r" %
 						 (subheader.contents))
-	city = m.group('city').replace(' ', '-').lower()
+	city = m.group('city').replace(' ', '-').replace('.', '').lower()
 	# city will be something like 'san-francisco' after the transformations
 	# above. Find what team that is by looking for the links to the teams that
 	# are also in that subheader.
@@ -110,7 +110,7 @@ def game(hometeam, awayteam, week, year):
 			data['favored'] = link.split('-')[-1]
 			break
 	else:
-		raise ValueError("couldn't figure out who %s is" % abbrev)
+		raise ValueError("couldn't figure out who %s is" % city)
 
 	return data
 

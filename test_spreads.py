@@ -74,6 +74,20 @@ class TestOneGame(unittest.TestCase):
 		self.assertTrue(math.isnan(row.betonline))
 		self.assertEqual(row.bookmaker, -2)
 
+	def test_favored_team_with_dot_in_city_name(self):
+		"St. Louis was messing up the favored-team detector."
+		hometeam, awayteam, week, year = 'cardinals', 'rams', 1, 2013
+		data = spreads.game(hometeam, awayteam, week, year)
+		self.assert_columns(data, hometeam, awayteam, week, year)
+		for x in data.favored:
+			self.assertEqual(x, awayteam)
+		# Test the contents of the first row
+		row = data.loc[0]
+		self.assertEqual(str(row.datetime), '2013-09-08 16:35:00')
+		self.assertTrue(math.isnan(row.pinnacle))
+		self.assertTrue(math.isnan(row.betonline))
+		self.assertEqual(row.bookmaker, -3.5)
+
 	def test_season_games_url(self):
 		self.assertEqual(
 			spreads.season_games_url(2012),
