@@ -290,18 +290,13 @@ def seasons(years, timeout=None, concurrency=_DEFAULT_CONCURRENCY):
 	merger of the tables that `season_games` and `game` return. The second is a
 	list of `game` arguments that caused `game` to fail.
 	"""
-	tables, failures = None, None
-	years = list(years)
+	tables, failures = [], []
 	for year in years:
 		LOG.info('=' * 10 + ' %d ' + '=' * 10, year)
 		table, failure = season(year, timeout=timeout, concurrency=concurrency)
-		if tables is None:
-			tables = table
-			failures = failure
-		else:
-			tables.append(table)
-			failures.extend(failure)
-	return tables, failures
+		tables.append(table)
+		failures.extend(failure)
+	return pd.concat(tables), failures
 
 
 def hometeamify(t):
