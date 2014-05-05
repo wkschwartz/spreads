@@ -290,7 +290,7 @@ def seasons(years, timeout=None, concurrency=_DEFAULT_CONCURRENCY):
 	merger of the tables that `season_games` and `game` return. The second is a
 	list of `game` arguments that caused `game` to fail.
 	"""
-	tables, failures = None
+	tables, failures = None, None
 	years = list(years)
 	for year in years:
 		LOG.info('=' * 10 + ' %d ' + '=' * 10, year)
