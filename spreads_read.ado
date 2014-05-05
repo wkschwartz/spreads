@@ -1,4 +1,6 @@
-version 10
+*! stata
+* version 0.1.0
+* William Schwartz and Christopher Holt
 
 /**
  * Read in data produced by spreads.py.
@@ -8,6 +10,7 @@ version 10
  * See `help insheet` for a description of `using` and `clear`.
  */
 program define spreads_read, nclass
+	version 10
 	syntax using[, clear]
 	preserve
 	quietly insheet `using', `clear' comma names
