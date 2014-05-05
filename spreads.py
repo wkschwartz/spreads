@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 """Download and clean historical betting spreads for NFL games.
 
 In all the functions below, identify games by a home team, away team, week, and
