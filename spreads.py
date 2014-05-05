@@ -15,6 +15,7 @@ import datetime
 import sys
 import re
 import warnings
+import argparse
 from multiprocessing import cpu_count
 from concurrent import futures
 from urllib.request import urlopen
@@ -25,6 +26,7 @@ from bs4 import BeautifulSoup
 
 
 __author__ = ('William Schwartz', 'Christopher Holt')
+__version__ = '0.1.0' # Try to stick to semver.org standards.
 EARLIEST_DATA_SEASON = 2008
 _GAME_URL_TEMPLATE = ("http://www.teamrankings.com/nfl/matchup/"
 					  "{hometeam}-{awayteam}-{week}-{year:n}")
@@ -347,16 +349,69 @@ def latest_season_before(date):
 	return date.year
 
 
-def main(args):
-	"Print the `seasons` table for all years from 2008 to the present."
-	logging.basicConfig(
-		level=logging.DEBUG,
-		format="[%(levelname)-8s %(asctime)s] %(message)s")
-	from_ = EARLIEST_DATA_SEASON
-	to = latest_season_before(datetime.date.today())
-	table, failures = seasons(range(from_, to + 1))
+def _download_and_print(file, year=None, week=None, timeout=None,
+					   concurrency=cpu_count()):
+	latest = latest_season_before(datetime.date.today())
+	if year is None:
+		if week is not None:
+			raise TypeError('Cannot give a week without a year')
+		table, failures = seasons(range(EARLIEST_DATA_SEASON, latest + 1),
+								  timeout=timeout, concurrency=concurrency)
+	else:
+		if year < EARLIEST_DATA_SEASON or latest < year:
+			raise ValueError('year=%d not in [%d, %d]' %
+							 (year, EARLIEST_DATA_SEASON, latest))
+		if week is None:
+			table, failures = season(year, timeout=timeout,
+									 concurrency=concurrency)
+		else:
+			table, failures = season(year, week=week, timeout=timeout,
+									 concurrency=concurrency)
+	if failures:
+		LOG.error('FAILURES:\n%s', '\n'.join(map(str, failures)))
+	table = hometeamify(table)
 	table.to_csv(sys.stdout, index=False)
+
+
+def parse_args(args):
+	a = argparse.ArgumentParser(
+		description=("Historical NFL and betting data: download, parse, and "
+					 "print as CSV to stdout."),
+		epilog=("Must give a year argument to give a week argument. Without a "
+				"year argument, download all data from %d to present. Weeks"
+				"are integers or one of 'wild-card', 'divisional', "
+				"'conference', or 'super-bowl'." % EARLIEST_DATA_SEASON))
+	a.add_argument('--version', action='version', version=__version__)
+	a.add_argument('-y', '--year', type=int, metavar='YEAR',
+				   help='return data only from season beginning in YEAR')
+	a.add_argument('-w', '--week',
+				   help='--year required; return data only from this week')
+	a.add_argument('--timeout', type=float, metavar='T',
+				   help='in seconds')
+	a.add_argument('--concurrency', type=int, metavar='N',
+				   default=_DEFAULT_CONCURRENCY,
+				   help='number of processors (default %(default)d)')
+	a.add_argument('--verbosity', default='INFO',
+				   choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
+				   help='set amount of logging output (default: %(default)s)')
+	args = a.parse_args(args)
+	if args.week is not None:
+		try:
+			args.week = int(args.week)
+		except ValueError:
+			pass
+	return args
+
+
+def main(args):
+	args = parse_args(args)
+	logging.basicConfig(
+		level=args.verbosity,
+		format="[%(levelname)-8s %(asctime)s] %(message)s")
 	logging.captureWarnings(capture=True)
+	with open(sys.stdout, newlines='', closefd=False) as stdout:
+		_download_and_print(file=stdout, year=args.year, week=args.week,
+							timeout=args.timeout, concurrency=args.concurrency)
 	return 0
 
 
