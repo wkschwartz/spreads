@@ -356,6 +356,7 @@ def main(args):
 	to = latest_season_before(datetime.date.today())
 	table, failures = seasons(range(from_, to + 1))
 	table.to_csv(sys.stdout, index=False)
+	logging.captureWarnings(capture=True)
 	return 0
 
 
