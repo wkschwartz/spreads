@@ -34,6 +34,7 @@ _FAVORED_RE = re.compile(r'\|\s+Odds:\s+(?P<city>[a-zA-Z. ]+)\s+by\s+[0-9.]+,')
 _SEASON_URL_TEMPLATE = ("http://www.pro-football-reference.com/years/"
 					   "{year:n}"
 					   "/games.htm")
+_DEFAULT_CONCURRENCY = cpu_count()
 LOG = logging.getLogger(__name__)
 
 
@@ -234,7 +235,7 @@ def game_unknown_homeaway(team_a, team_b, week, year):
 	return g
 
 
-def season(year, week=None, timeout=None, concurrency=cpu_count()):
+def season(year, week=None, timeout=None, concurrency=_DEFAULT_CONCURRENCY):
 	"""Download, parse, and clean the scores & spreads for all games in a season
 
 	`timeout` is in seconds and `concurrency` is the number of threads to use,
@@ -276,7 +277,7 @@ def season(year, week=None, timeout=None, concurrency=cpu_count()):
 	return tables, failures
 
 
-def seasons(years, timeout=None, concurrency=cpu_count()):
+def seasons(years, timeout=None, concurrency=_DEFAULT_CONCURRENCY):
 	"""Download, parse, and clean multiple seasons of NFL games and spreads.
 
 	`years` is an iterable of integers. `timeout` is measured in
