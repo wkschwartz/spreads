@@ -409,7 +409,7 @@ def main(args):
 		level=args.verbosity,
 		format="[%(levelname)-8s %(asctime)s] %(message)s")
 	logging.captureWarnings(capture=True)
-	with open(sys.stdout, newlines='', closefd=False) as stdout:
+	with open(sys.stdout.fileno(), 'w', newline='', closefd=False) as stdout:
 		_download_and_print(file=stdout, year=args.year, week=args.week,
 							timeout=args.timeout, concurrency=args.concurrency)
 	return 0
